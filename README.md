@@ -13,7 +13,7 @@ pip3 install tg-botting
 Quick Start
 
 ```python
-from sweetie.bot import Bot
+from tg_botting.bot import Bot
 
 # user_id and user_hash - user application in telegram 
 
