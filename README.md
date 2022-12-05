@@ -7,7 +7,7 @@ python library for easy creation of a telegram bot
 Use pip3
 
 ```
-
+pip3 install tg-botting
 ```
 
 Quick Start
