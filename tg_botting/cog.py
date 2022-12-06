@@ -1,6 +1,7 @@
-def command(name):
+def command(name,ignore_filter=False):
     def decorator(func):
         setattr(func, '__command__', name)
+        setattr(func, '__ignore_filter__', ignore_filter)
         return func
 
     return decorator

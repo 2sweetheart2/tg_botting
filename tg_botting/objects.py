@@ -2,7 +2,7 @@ import datetime
 import json
 from enum import Enum
 
-from user_utils import username_cahce, user_cache
+from .user_utils import username_cahce, user_cache
 
 
 class CallbackQuery:
@@ -74,6 +74,9 @@ class Message:
 
     def get_text(self) -> str:
         return self.text
+
+    async def send(self,text: str, reply_markup=None, **kwargs):
+        return await self.bot.send_message(self.chat.id, text, reply_markup, **kwargs)
 
     async def get_appeal(self, offset=1):
         count = 1

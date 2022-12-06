@@ -20,7 +20,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long_description,
     packages=['tg_botting'],
-    install_requires=['pyrogram', 'requests', 'aiohttp','datetime'],
+    install_requires=['pyrogram', 'requests', 'aiohttp','datetime','TgCrypto'],
     keywords=['python', 'bot', 'tg', 'tg bot', 'telegram', 'telegram bot', 'botting'],
     classifiers=[
         "Development Status :: 4 - Beta",

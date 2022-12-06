@@ -30,6 +30,8 @@ class Bot:
         self.actions_from_cog = []
         self.message_handlers = {}
         self.listeners_handle = {}
+        self.chat_filter = []
+        self.ignore_filter = []
         self._skip_check = lambda x, y: x == y
         timeout = aiohttp.ClientTimeout(total=100, connect=10)
         user_agent = kwargs.get('user_agent', None)
@@ -43,6 +45,8 @@ class Bot:
 
         self.loop = asyncio.get_event_loop()
 
+    def add_chat_filter(self,chat_id:int):
+        self.chat_filter.append(chat_id)
     # <---- custom API actions start ----> #
 
     async def send_photo(self, chat_id, photo, **kwargs):
@@ -117,9 +121,11 @@ class Bot:
 
     # <---- COGS start ----> #
 
-    def command(self, name):
+    def command(self, name, ignore_filter=False):
         def decorator(func):
             self.add_message_handler(name, func)
+            if ignore_filter:
+                self.ignore_filter.append(func)
 
         return decorator
 
@@ -220,6 +226,14 @@ class Bot:
                 else:
                     await _m(message)
 
+    async def dispatch_chat_filter_error(self,message):
+        if self.listeners_handle.get('on_chat_filter'):
+            for _m in self.listeners_handle.get('on_chat_filter'):
+                if _m in self.actions_from_cog:
+                    await _m(self,message)
+                else:
+                    await _m(message)
+
     # <---- dispatch events end ---->#
 
     def search(self, name):
@@ -248,6 +262,8 @@ class Bot:
         self.random_cog = cls
         for v in cls.__class__.__dict__.values():
             if '__command__' in dir(v):
+                if v.__ignore_filter__:
+                    self.ignore_filter.append(v)
                 self.add_message_handler(v.__command__, v)
                 self.actions_from_cog.append(v)
             elif '__listener__' in dir(v):
@@ -255,11 +271,17 @@ class Bot:
                 self.actions_from_cog.append(v)
 
     async def dispatch(self, message):
+
+
         if self.has_prefix(message):
             ms = message.text.split(' ')
             ms.pop(0)
             rs, c = self.search(' '.join(ms))
+
             if rs:
+                if len(self.chat_filter) > 0:
+                    if message.chat.id not in self.chat_filter and rs not in self.ignore_filter:
+                        return await self.dispatch_chat_filter_error(message)
                 for i in range(c):
                     ms.pop(0)
                 message.text = ' '.join(ms)
