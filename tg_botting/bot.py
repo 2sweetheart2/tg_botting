@@ -7,9 +7,9 @@ import aiohttp
 import requests
 from pyrogram import Client
 
-import generals
-from Objects import Message, ChatActions, UserProfilePicture, CallbackQuery
-from cog import Cog
+from . import generals
+from .objects import Message, ChatActions, UserProfilePicture, CallbackQuery
+from .cog import Cog
 
 
 class Bot:
@@ -93,10 +93,8 @@ class Bot:
             'text': text
         }
         if reply_markup:
-            print(json.dumps(reply_markup.to_dict()))
             dic.update({'reply_markup': json.dumps(reply_markup.to_dict())})
         dic.update(kwargs)
-        print(dic)
         rs = await self._tg_request('sendMessage', True, **dic)
         return await self.prefe_incomming_message(rs)
 
@@ -148,7 +146,6 @@ class Bot:
                 await _m(query)
 
     async def handleMessage(self, obj):
-        print(obj)
         self.offset = obj.get('update_id') + 1
         if 'message' in obj:
             message = Message(self, obj.get('message'))

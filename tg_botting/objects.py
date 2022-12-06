@@ -145,7 +145,6 @@ class User:
 
     @staticmethod
     async def load(chat_id: int, username, bot):
-        print(username_cahce)
         if username in username_cahce:
             return user_cache.get(username_cahce.get(username))
         else:
