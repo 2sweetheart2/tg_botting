@@ -4,6 +4,15 @@ from enum import Enum
 
 from .user_utils import username_cahce, user_cache
 
+class Command:
+    def __init__(self,func,name,description=None,aliases=None,usage=None,roles=None,ignore_filter=False):
+        self.func = func
+        self.name = name
+        self.roles = roles
+        self.description = description
+        self.aliases = aliases
+        self.usage = usage
+        self.ignore_filter = ignore_filter
 
 class CallbackQuery:
     def __init__(self, bot, payload):
@@ -11,7 +20,7 @@ class CallbackQuery:
         self.user = User(payload.get('from'))
         self.message = Message(bot, payload.get('message'))
         self.chat_instance = payload.get('chat_instance')
-        self.data = payload.get('data') if 'data' in payload else None
+        self.date = payload.get('data') if 'data' in payload else None
 
 
 class KButton:

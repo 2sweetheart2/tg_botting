@@ -2,6 +2,9 @@ import aiohttp
 
 token = ''
 
+class RoleException(BaseException):
+    pass
+
 def convert_params(params):
     for param in list(params):
         if params[param] is None:
