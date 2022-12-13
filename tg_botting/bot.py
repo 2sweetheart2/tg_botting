@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import json
+import logging
 import sys
 import time
 
@@ -9,10 +10,9 @@ import requests
 from pyrogram import Client
 
 from . import generals
+from .cog import Cog
 from .generals import RoleException
 from .objects import Message, ChatActions, UserProfilePicture, CallbackQuery, Command
-from .cog import Cog
-import logging
 
 
 class Bot:
@@ -33,6 +33,7 @@ class Bot:
         self.group_photos = []
         self.actions_from_cog = []
         self.command_roles = {}
+        self.ignore_listener_filter = []
         self.message_handlers = {}
         self.listeners_handle = {}
         self.aliases = {}
@@ -51,16 +52,19 @@ class Bot:
 
         self.loop = asyncio.get_event_loop()
 
-    def add_chat_filter(self,chat_id:int):
+    def add_chat_filter(self, chat_id: int):
         self.chat_filter.append(chat_id)
+
     # <---- custom API actions start ----> #
 
-    async def send_photo(self, chat_id, photo, **kwargs):
+    async def send_photo(self, chat_id:int, photo:str, **kwargs):
         dic = {
             'chat_id': chat_id,
             'photo': photo
         }
-        dic.update(kwargs)
+        dic.update(**kwargs)
+        if 'reply_markup' in kwargs:
+            dic.update({'reply_markup': json.dumps(kwargs.get('reply_markup').to_dict())})
         return await self._tg_request('sendPhoto', True, **dic)
 
     async def send_sticker(self, chat_id, sticker, **kwargs):
@@ -127,20 +131,23 @@ class Bot:
 
     # <---- COGS start ----> #
 
-    def command(self, name,aliases=None,usage=None,description=None, roles=None, ignore_filter=False):
+    def command(self, name, aliases=None, usage=None, description=None, roles=None, ignore_filter=False,has_arts=False):
         def decorator(func):
-            command = Command(func,name,description,aliases,usage,roles,ignore_filter)
-            self.add_message_handler(name, command)
+            command = Command(func, name, description, aliases, usage, roles, ignore_filter,has_arts=has_arts)
+            self.add_command(name, command)
             if ignore_filter:
                 self.ignore_filter.append(command)
             if aliases is not None:
                 for al in aliases:
-                    self.aliases.update({al:command})
+                    self.add_command(al, command)
+
         return decorator
 
-    def listener(self):
+    def listener(self, ignore_filter=False):
         def decorator(func):
             self.add_listener(func.__name__, func)
+            if ignore_filter:
+                self.ignore_listener_filter.append(func)
 
         return decorator
 
@@ -150,9 +157,6 @@ class Bot:
         else:
             self.listeners_handle.update({name: [func]})
 
-    def add_message_handler(self, name, command):
-        self.add_command(name, command)
-
     async def dispacth_query(self, query):
         for _m in self.listeners_handle.get('on_callback_query'):
             if _m in self.actions_from_cog:
@@ -160,10 +164,9 @@ class Bot:
             else:
                 await _m(query)
 
-    async def check_date(self,message):
-        date =  datetime.datetime.now()-datetime.timedelta(seconds=5)
-        return message.date>date
-
+    async def check_date(self, message):
+        date = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        return message.date > date
 
     async def handleMessage(self, obj):
         self.offset = obj.get('update_id') + 1
@@ -173,8 +176,7 @@ class Bot:
                 return await self.dispatch(message)
         elif 'callback_query' in obj:
             query = CallbackQuery(self, obj.get('callback_query'))
-            if await self.check_date(query):
-                return await self.dispacth_query(query)
+            return await self.dispacth_query(query)
 
     def has_prefix(self, message):
         if message.text:
@@ -187,10 +189,11 @@ class Bot:
     async def dispatch_message(self, message):
         if self.listeners_handle.get('on_message_new'):
             for _m in self.listeners_handle.get('on_message_new'):
-                if _m in self.actions_from_cog:
-                    await _m(self, message)
-                else:
-                    await _m(message)
+                if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
+                    if _m in self.actions_from_cog:
+                        await _m(self, message)
+                    else:
+                        await _m(message)
 
     async def dispatch_command(self, message, command):
         if command in self.actions_from_cog:
@@ -201,10 +204,11 @@ class Bot:
     async def dispatch_uknow_command(self, message):
         if self.listeners_handle.get("on_unknow_command"):
             for _m in self.listeners_handle.get('on_unknow_command'):
-                if _m in self.actions_from_cog:
-                    await _m(self, message)
-                else:
-                    await _m(message)
+                if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
+                    if _m in self.actions_from_cog:
+                        await _m(self, message)
+                    else:
+                        await _m(message)
 
     async def dispath_group_photo(self, message):
         time.sleep(1)
@@ -217,10 +221,11 @@ class Bot:
         else:
             if self.listeners_handle.get('on_photo'):
                 for _m in self.listeners_handle.get('on_photo'):
-                    if _m in self.actions_from_cog:
-                        await _m(self, message)
-                    else:
-                        await _m(message)
+                    if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
+                        if _m in self.actions_from_cog:
+                            await _m(self, message)
+                        else:
+                            await _m(message)
         self.group_photos = []
 
     async def dispatch_photo(self, message):
@@ -229,24 +234,26 @@ class Bot:
     async def dispatch_sticker(self, message):
         if self.listeners_handle.get('on_sticker_new'):
             for _m in self.listeners_handle.get('on_sticker_new'):
-                if _m in self.actions_from_cog:
-                    await _m(self, message)
-                else:
-                    await _m(message)
+                if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
+                    if _m in self.actions_from_cog:
+                        await _m(self, message)
+                    else:
+                        await _m(message)
 
     async def dispatch_new_member(self, message):
         if self.listeners_handle.get('on_new_member'):
             for _m in self.listeners_handle.get('on_new_member'):
-                if _m in self.actions_from_cog:
-                    await _m(self, message)
-                else:
-                    await _m(message)
+                if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
+                    if _m in self.actions_from_cog:
+                        await _m(self, message)
+                    else:
+                        await _m(message)
 
-    async def dispatch_chat_filter_error(self,message):
+    async def dispatch_chat_filter_error(self, message):
         if self.listeners_handle.get('on_chat_filter'):
             for _m in self.listeners_handle.get('on_chat_filter'):
                 if _m in self.actions_from_cog:
-                    await _m(self,message)
+                    await _m(self, message)
                 else:
                     await _m(message)
 
@@ -258,16 +265,12 @@ class Bot:
         c = 0
         from_aliases = False
         for word in name.split():
-
             if word not in level:
                 break
+            c += 1
             level = level[word]
             if '' in level:
                 last_fitting = level['']
-                c += 1
-        if last_fitting is None and name in self.aliases:
-            last_fitting = self.aliases.get(name)
-            from_aliases = True
         return last_fitting, c, from_aliases
 
     def add_command(self, name, command):
@@ -282,24 +285,28 @@ class Bot:
         self.random_cog = cls
         for v in cls.__class__.__dict__.values():
             if '__command__' in dir(v):
-                command = Command(v,v.__command__)
+                command = Command(v, v.__command__)
                 if 'description' in dir(v):
                     command.description = v.description
-                if 'aliases' in dir(v):
-                    command.aliases = v.aliases
-                    for al in v.aliases:
-                        self.aliases.update({al:command})
                 if 'usage' in dir(v):
                     command.usage = v.usage
                 if 'roles' in dir(v):
                     command.roles = v.roles
                 if v.__ignore_filter__:
                     self.ignore_filter.append(command)
-                self.add_message_handler(v.__command__, command)
+                if 'aliases' in dir(v):
+                    command.aliases = v.aliases
+                    for al in v.aliases:
+                        self.add_command(al, command)
+                if 'has_arts' in dir(v):
+                    command.has_arts = v.has_arts
+                self.add_command(v.__command__, command)
                 self.actions_from_cog.append(command)
             elif '__listener__' in dir(v):
                 self.add_listener(v.__listener__, v)
                 self.actions_from_cog.append(v)
+                if v.__ignore_filter__:
+                    self.ignore_listener_filter.append(v)
 
     async def dispatch(self, message):
         if self.has_prefix(message):
@@ -308,19 +315,19 @@ class Bot:
             rs, c, from_aliases = self.search(' '.join(ms))
             try:
                 if rs:
-                    if 'on_pre_command' in self.listeners_handle:
-                        for _m in self.listeners_handle.get('on_pre_command'):
-                            if _m in self.actions_from_cog:
-                                await _m(self,rs,message)
-                            else:
-                                await _m(rs,message)
-                    if len(self.chat_filter) > 0:
-                        if message.chat.id not in self.chat_filter and rs not in self.ignore_filter:
-                            return await self.dispatch_chat_filter_error(message)
                     for i in range(c):
                         ms.pop(0)
                     message.text = ' '.join(ms)
-
+                    setattr(message,'texts',ms)
+                    if 'on_pre_command' in self.listeners_handle:
+                        for _m in self.listeners_handle.get('on_pre_command'):
+                            if _m in self.actions_from_cog:
+                                await _m(self, rs, message)
+                            else:
+                                await _m(rs, message)
+                    if len(self.chat_filter) > 0:
+                        if message.chat.id not in self.chat_filter and rs not in self.ignore_filter:
+                            return await self.dispatch_chat_filter_error(message)
                     await self.dispatch_command(message, rs)
                 else:
                     await self.dispatch_uknow_command(message)

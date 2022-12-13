@@ -1,12 +1,14 @@
-from setuptools import setup, find_packages
 import codecs
 import os
+
+from setuptools import setup
+
 here = os.path.abspath(os.path.dirname(__file__))
 
 with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as fh:
     long_description = "\n" + fh.read()
 
-VERSION = '1.3.3'
+VERSION = '1.3.8.1'
 DESCRIPTION = 'python library for easy creation of a telegram bot.'
 LONG_DESCRIPTION = 'A package that allows you to create bots for telegram using its entire API.'
 
@@ -20,7 +22,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long_description,
     packages=['tg_botting'],
-    install_requires=['pyrogram', 'requests', 'aiohttp','datetime','TgCrypto'],
+    install_requires=['pyrogram', 'requests', 'aiohttp', 'datetime', 'TgCrypto'],
     keywords=['python', 'bot', 'tg', 'tg bot', 'telegram', 'telegram bot', 'botting'],
     classifiers=[
         "Development Status :: 4 - Beta",

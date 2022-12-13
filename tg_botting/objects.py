@@ -5,7 +5,7 @@ from enum import Enum
 from .user_utils import username_cahce, user_cache
 
 class Command:
-    def __init__(self,func,name,description=None,aliases=None,usage=None,roles=None,ignore_filter=False):
+    def __init__(self,func,name,description=None,aliases=None,usage=None,roles=None,ignore_filter=False,has_arts=False):
         self.func = func
         self.name = name
         self.roles = roles
@@ -13,15 +13,16 @@ class Command:
         self.aliases = aliases
         self.usage = usage
         self.ignore_filter = ignore_filter
+        self.has_arts=has_arts
 
 class CallbackQuery:
     def __init__(self, bot, payload):
+        print(payload)
         self.id = payload.get('id')
         self.user = User(payload.get('from'))
         self.message = Message(bot, payload.get('message'))
         self.chat_instance = payload.get('chat_instance')
-        self.date = payload.get('data') if 'data' in payload else None
-
+        self.data = payload.get('data') if 'data' in payload else None
 
 class KButton:
     def __init__(self, text: str, callback_data=None, url=None):
@@ -77,12 +78,17 @@ class Message:
         self.sticker = Sticker(payload.get('sticker')) if 'sticker' in payload else None
         self.bot = bot
         self.date = datetime.datetime.fromtimestamp(payload.get('date'))
-        self.text = payload.get('text')
+        self.text = payload.get('text') or payload.get('caption')
         self.edit_date = datetime.datetime.fromtimestamp(payload.get('edit_date')) if 'edit_date' in payload else None
         self.new_chat_member = User(payload.get('new_chat_member')) if 'new_chat_member' in payload else None
+        self.media_group_id = payload.get('media_group_id') if 'media_group_id' in payload else -1
+
 
     def get_text(self) -> str:
         return self.text
+
+    async def send_photo(self,photo_id:str,**kwargs):
+        return await self.bot.send_photo(self.chat.id,photo_id,**kwargs)
 
     async def send(self,text: str, reply_markup=None, **kwargs):
         return await self.bot.send_message(self.chat.id, text, reply_markup, **kwargs)
@@ -108,16 +114,20 @@ class Message:
             rs = await self.bot.tg_request('editMessageText', True, **data)
             return Message(self.bot, rs.get('result'))
 
-    async def reply(self, text, reply_markup=None, **kwargs):
+    async def reply(self, text, reply_markup=None, photo=None, **kwargs):
         data = {
             'chat_id': self.chat.id if 'chat_id' not in kwargs else kwargs.get('chat_id'),
-            'text': text,
             'disable_notification': False if 'disable_notification' not in kwargs else kwargs.get(
                 'disable_notification'),
             'reply_to_message_id': self.message_id
         }
         if reply_markup:
             data.update({'reply_markup': json.dumps(reply_markup.to_dict())})
+        if photo:
+            data['caption'] = text
+            data.pop('chat_id')
+            return await self.send_photo(photo,**data)
+        data['text'] = text
         rs = await self.bot.tg_request('sendMessage', True, **data)
         return rs.get('ok')
 
@@ -143,7 +153,6 @@ class Photo:
         self.file_size = payload.get('file_size')
         self.width = payload.get('width')
         self.height = payload.get('height')
-        self.media_group_id = payload.get('media_group_id') if 'media_group_id' in payload else -1
 
 
 class User:

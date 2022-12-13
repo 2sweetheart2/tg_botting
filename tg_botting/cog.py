@@ -1,23 +1,26 @@
-def command(name,aliases=None,usage=None,description=None, roles=None, ignore_filter=False):
+def command(name, aliases=None, usage=None, description=None, roles=None, ignore_filter=False,has_arts=False):
     def decorator(func):
         setattr(func, '__command__', name)
         setattr(func, '__ignore_filter__', ignore_filter)
+        setattr(func,'has_arts',has_arts)
         if description:
-            setattr(func,'description',description)
+            setattr(func, 'description', description)
         if aliases:
-            setattr(func,'aliases',aliases)
+            setattr(func, 'aliases', aliases)
         if usage:
-            setattr(func,'usage',usage)
+            setattr(func, 'usage', usage)
         if roles:
-            setattr(func,'roles',roles)
+            setattr(func, 'roles', roles)
+
         return func
 
     return decorator
 
 
-def listener():
+def listener(ignore_filter=False):
     def decorator(func):
         setattr(func, '__listener__', func.__name__)
+        setattr(func, '__ignore_filter__', ignore_filter)
         return func
 
     return decorator
