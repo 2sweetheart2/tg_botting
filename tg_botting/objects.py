@@ -84,6 +84,9 @@ class Message:
         self.media_group_id = payload.get('media_group_id') if 'media_group_id' in payload else -1
 
 
+    async def delete_message(self):
+        return await self.bot.delete_message(self.chat.id,self.message_id)
+
     def get_text(self) -> str:
         return self.text
 

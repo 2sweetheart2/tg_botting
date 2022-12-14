@@ -57,6 +57,9 @@ class Bot:
 
     # <---- custom API actions start ----> #
 
+    async def delete_message(self,chat_id,message_id,revoke=True):
+        return await self.pyrogram.delete_messages(chat_id,message_id,revoke)
+
     async def send_photo(self, chat_id:int, photo:str, **kwargs):
         dic = {
             'chat_id': chat_id,
