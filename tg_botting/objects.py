@@ -119,21 +119,20 @@ class Message:
 
     async def reply(self, text, reply_markup=None, photo=None, **kwargs):
         data = {
-            'chat_id': self.chat.id if 'chat_id' not in kwargs else kwargs.get('chat_id'),
-            'disable_notification': False if 'disable_notification' not in kwargs else kwargs.get(
-                'disable_notification'),
-            'reply_to_message_id': self.message_id,
-
+            'chat_id': self.chat.id or kwargs['chat_id'],
+            'reply_to_message_id': self.message_id
         }
+        if kwargs['parse_mode']:
+            data['parse_mode'] = kwargs['parse_mode']
         if reply_markup:
-            data.update({'reply_markup': json.dumps(reply_markup.to_dict())})
+            data['reply_markup'] = json.dumps(reply_markup.to_dict())
         if photo:
             data['caption'] = text
             data.pop('chat_id')
             return await self.send_photo(photo,**data)
-        if 'parse_mode' in kwargs:
-            data['parse_mode'] = kwargs.get('parse_mode')
+
         data['text'] = text
+        print(data)
         rs = await self.bot.tg_request('sendMessage', True, **data)
         return rs.get('ok')
 
