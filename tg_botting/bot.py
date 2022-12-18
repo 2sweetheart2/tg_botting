@@ -14,6 +14,15 @@ from .cog import Cog
 from .objects import Message, ChatActions, UserProfilePicture, CallbackQuery, Command
 
 
+class CallbackError(Exception):
+    def __init__(self, message=None, *args):
+        if message is not None:
+            self.message = message
+            super().__init__(message, *args)
+        else:
+            super().__init__(*args)
+
+
 class Bot:
 
     def __init__(self, prefixs, user_id, user_hash, **kwargs):
@@ -344,6 +353,8 @@ class Bot:
                         if message.chat.id not in self.chat_filter and rs not in self.ignore_filter:
                             return await self.dispatch_chat_filter_error(message)
                     await self.dispatch_command(message, rs)
+                except CallbackError as e:
+                    await message.reply(e.message)
                 except Exception:
                     await self.dispatch_error_command_invoke(message, rs)
             else:
