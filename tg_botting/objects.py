@@ -17,7 +17,7 @@ class Command:
 
 class CallbackQuery:
     def __init__(self, bot, payload):
-        print(payload)
+
         self.id = payload.get('id')
         self.user = User(payload.get('from'))
         self.message = Message(bot, payload.get('message'))
@@ -132,7 +132,6 @@ class Message:
             return await self.send_photo(photo,**data)
 
         data['text'] = text
-        print(data)
         rs = await self.bot.tg_request('sendMessage', True, **data)
         return rs.get('ok')
 
