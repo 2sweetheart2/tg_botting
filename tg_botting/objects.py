@@ -117,13 +117,13 @@ class Message:
             rs = await self.bot.tg_request('editMessageText', True, **data)
             return Message(self.bot, rs.get('result'))
 
-    async def reply(self, text, reply_markup=None, photo=None, **kwargs):
+    async def reply(self, text, reply_markup=None, photo=None,parse_mode=None, **kwargs):
         data = {
             'chat_id': self.chat.id or kwargs['chat_id'],
             'reply_to_message_id': self.message_id
         }
-        if 'pase_mode' in kwargs:
-            data['parse_mode'] = kwargs['parse_mode']
+        if parse_mode:
+            data['parse_mode'] = parse_mode
         if reply_markup:
             data['reply_markup'] = json.dumps(reply_markup.to_dict())
         if photo:
