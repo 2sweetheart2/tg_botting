@@ -4,6 +4,7 @@ import json
 import logging
 import sys
 import time
+import traceback
 
 import aiohttp
 import requests
@@ -355,8 +356,10 @@ class Bot:
                     await self.dispatch_command(message, rs)
                 except CallbackError as e:
                     await message.reply(e.message)
-                except Exception:
-                    await self.dispatch_error_command_invoke(message, rs)
+                    return  await self.dispatch_error_command_invoke(message, rs)
+                except Exception as t:
+                    traceback.print_exc()
+                    return await self.dispatch_error_command_invoke(message, rs)
             else:
                 await self.dispatch_uknow_command(message)
         await self.dispatch_message(message)
