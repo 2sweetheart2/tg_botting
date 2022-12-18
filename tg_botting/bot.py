@@ -64,9 +64,10 @@ class Bot:
             'chat_id': chat_id,
             'photo': photo
         }
-        dic.update(**kwargs)
         if 'reply_markup' in kwargs:
             dic.update({'reply_markup': json.dumps(kwargs.get('reply_markup').to_dict())})
+            kwargs.pop('reply_markup')
+        dic.update(**kwargs)
         return await self._tg_request('sendPhoto', True, **dic)
 
     async def send_sticker(self, chat_id, sticker, **kwargs):
