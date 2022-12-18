@@ -11,7 +11,6 @@ from pyrogram import Client
 
 from . import generals
 from .cog import Cog
-from .generals import RoleException
 from .objects import Message, ChatActions, UserProfilePicture, CallbackQuery, Command
 
 
@@ -57,10 +56,10 @@ class Bot:
 
     # <---- custom API actions start ----> #
 
-    async def delete_message(self,chat_id,message_id,revoke=True):
-        return await self.pyrogram.delete_messages(chat_id,message_id,revoke)
+    async def delete_message(self, chat_id, message_id, revoke=True):
+        return await self.pyrogram.delete_messages(chat_id, message_id, revoke)
 
-    async def send_photo(self, chat_id:int, photo:str, **kwargs):
+    async def send_photo(self, chat_id: int, photo: str, **kwargs):
         dic = {
             'chat_id': chat_id,
             'photo': photo
@@ -134,9 +133,10 @@ class Bot:
 
     # <---- COGS start ----> #
 
-    def command(self, name, aliases=None, usage=None, description=None, roles=None, ignore_filter=False,has_arts=False):
+    def command(self, name, aliases=None, usage=None, description=None, roles=None, ignore_filter=False,
+                has_arts=False):
         def decorator(func):
-            command = Command(func, name, description, aliases, usage, roles, ignore_filter,has_arts=has_arts)
+            command = Command(func, name, description, aliases, usage, roles, ignore_filter, has_arts=has_arts)
             self.add_command(name, command)
             if ignore_filter:
                 self.ignore_filter.append(command)
@@ -212,6 +212,15 @@ class Bot:
                         await _m(self, message)
                     else:
                         await _m(message)
+
+    async def dispatch_error_command_invoke(self, message, command):
+        if self.listeners_handle.get('on_command_error'):
+            for _m in self.listeners_handle.get('on_command_error'):
+                if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
+                    if _m in self.actions_from_cog:
+                        await _m(self, message, command)
+                    else:
+                        await _m(message, command)
 
     async def dispath_group_photo(self, message):
         time.sleep(1)
@@ -316,12 +325,13 @@ class Bot:
             ms = message.text.split(' ')
             ms.pop(0)
             rs, c, from_aliases = self.search(' '.join(ms))
-            try:
-                if rs:
+
+            if rs:
+                try:
                     for i in range(c):
                         ms.pop(0)
                     message.text = ' '.join(ms)
-                    setattr(message,'texts',ms)
+                    setattr(message, 'texts', ms)
                     if 'on_pre_command' in self.listeners_handle:
                         for _m in self.listeners_handle.get('on_pre_command'):
                             if _m in self.actions_from_cog:
@@ -332,10 +342,10 @@ class Bot:
                         if message.chat.id not in self.chat_filter and rs not in self.ignore_filter:
                             return await self.dispatch_chat_filter_error(message)
                     await self.dispatch_command(message, rs)
-                else:
-                    await self.dispatch_uknow_command(message)
-            except RoleException:
-                pass
+                except Exception:
+                    await self.dispatch_error_command_invoke(message, rs)
+            else:
+                await self.dispatch_uknow_command(message)
         await self.dispatch_message(message)
         if message.photo:
             await self.dispatch_photo(message)
@@ -343,6 +353,7 @@ class Bot:
             await self.dispatch_sticker(message)
         elif message.new_chat_member:
             await self.dispatch_new_member(message)
+
 
     async def longpoll(self):
         data = {}
@@ -355,6 +366,7 @@ class Bot:
             ar = json_.get('result')
             return ar
         return None
+
 
     async def _run(self):
         updates = []
@@ -370,6 +382,7 @@ class Bot:
                 await self.handleMessage(update)
             updates = await lp
 
+
     async def general_request(self, url, post=False, **params):
         params = generals.convert_params(params)
         for tries in range(5):
@@ -383,13 +396,16 @@ class Bot:
                 print('Got exception in request: {}\nRetrying in {} seconds'.format(e, tries * 2 + 1), file=sys.stderr)
                 await asyncio.sleep(tries * 2 + 1)
 
+
     async def _tg_request(self, method, post, **kwargs):
         res = await self.general_request('https://api.telegram.org/bot{}/{}'.format(self.token, method), post=post,
                                          **kwargs)
         return res
 
+
     async def tg_request(self, method, post=True, **kwargs):
         return await self._tg_request(method, post, **kwargs)
+
 
     def run(self, token):
         generals.token = token
