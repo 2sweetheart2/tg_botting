@@ -173,14 +173,15 @@ class Bot:
         return message.date > date
 
     async def handleMessage(self, obj):
-        self.offset = obj.get('update_id') + 1
-        if 'message' in obj:
-            message = Message(self, obj.get('message'))
-            if await self.check_date(message):
-                return await self.dispatch(message)
-        elif 'callback_query' in obj:
-            query = CallbackQuery(self, obj.get('callback_query'))
-            return await self.dispacth_query(query)
+        if len(obj)>=1:
+            self.offset = obj.get('update_id') + 1
+            if 'message' in obj:
+                message = Message(self, obj.get('message'))
+                if await self.check_date(message):
+                    return await self.dispatch(message)
+            elif 'callback_query' in obj:
+                query = CallbackQuery(self, obj.get('callback_query'))
+                return await self.dispacth_query(query)
 
     def has_prefix(self, message):
         if message.text:
