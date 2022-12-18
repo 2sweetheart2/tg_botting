@@ -122,7 +122,7 @@ class Message:
             'chat_id': self.chat.id or kwargs['chat_id'],
             'reply_to_message_id': self.message_id
         }
-        if kwargs['parse_mode']:
+        if 'pase_mode' in kwargs:
             data['parse_mode'] = kwargs['parse_mode']
         if reply_markup:
             data['reply_markup'] = json.dumps(reply_markup.to_dict())
