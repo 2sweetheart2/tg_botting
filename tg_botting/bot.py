@@ -366,7 +366,7 @@ class Bot:
         if json_.get('ok'):
             ar = json_.get('result')
             return ar
-        return None
+        return []
 
 
     async def _run(self):
