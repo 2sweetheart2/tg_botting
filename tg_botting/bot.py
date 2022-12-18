@@ -366,7 +366,7 @@ class Bot:
         if json_.get('ok'):
             ar = json_.get('result')
             return ar
-        return []
+        return None
 
 
     async def _run(self):
@@ -379,8 +379,9 @@ class Bot:
                     await _m()
         while True:
             lp = self.loop.create_task(self.longpoll())
-            for update in updates:
-                await self.handleMessage(update)
+            if updates is not None:
+                for update in updates:
+                    await self.handleMessage(update)
             updates = await lp
 
 
