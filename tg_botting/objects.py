@@ -82,7 +82,10 @@ class Message:
         self.edit_date = datetime.datetime.fromtimestamp(payload.get('edit_date')) if 'edit_date' in payload else None
         self.new_chat_member = User(payload.get('new_chat_member')) if 'new_chat_member' in payload else None
         self.media_group_id = payload.get('media_group_id') if 'media_group_id' in payload else -1
-        self.entities = [Entity(p) for p in payload.get('entities')] or []
+        if 'entities' in payload:
+            self.entities = [Entity(p) for p in payload.get('entities')]
+        else:
+            self.entities = []
 
 
     async def delete_message(self):
@@ -199,9 +202,9 @@ class User:
     def get_full_name(self):
         return self.first_name + ' ' + self.last_name
 
-class Entity(User):
+class Entity:
     def __init__(self, payload):
-        super().__init__(payload.get('user'))
+        self.user = User(payload.get('user'))
         self.offset = payload.get('offset')
         self.length = payload.get('length')
         self.type = payload.get('type')
