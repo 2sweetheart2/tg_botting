@@ -40,7 +40,7 @@ class Bot:
         self.prefix = prefixs
         self.__cogs = {}
         self.group_photos = []
-        self.actions_from_cog = []
+        self.actions_from_cog = {}
         self.command_roles = {}
         self.ignore_listener_filter = []
         self.message_handlers = {}
@@ -129,7 +129,7 @@ class Bot:
         if not message.get('ok'):
             for _m in self.listeners_handle.get('on_invoke_command_error'):
                 if _m in self.actions_from_cog:
-                    await _m(self, message)
+                    await _m(self.actions_from_cog.get(_m), message)
                 else:
                     await _m(message)
             return None
@@ -174,7 +174,7 @@ class Bot:
     async def dispacth_query(self, query):
         for _m in self.listeners_handle.get('on_callback_query'):
             if _m in self.actions_from_cog:
-                await _m(self, query)
+                await _m(self.actions_from_cog.get(_m), query)
             else:
                 await _m(query)
 
@@ -206,13 +206,13 @@ class Bot:
             for _m in self.listeners_handle.get('on_message_new'):
                 if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
                     if _m in self.actions_from_cog:
-                        await _m(self, message)
+                        await _m(self.actions_from_cog.get(_m), message)
                     else:
                         await _m(message)
 
     async def dispatch_command(self, message, command):
         if command in self.actions_from_cog:
-            await command.func(self, message)
+            await command.func(self.actions_from_cog.get(command), message)
         else:
             await command.func(message)
 
@@ -221,7 +221,7 @@ class Bot:
             for _m in self.listeners_handle.get('on_unknow_command'):
                 if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
                     if _m in self.actions_from_cog:
-                        await _m(self, message)
+                        await _m(self.actions_from_cog.get(_m), message)
                     else:
                         await _m(message)
 
@@ -230,7 +230,7 @@ class Bot:
             for _m in self.listeners_handle.get('on_command_error'):
                 if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
                     if _m in self.actions_from_cog:
-                        await _m(self, message, command)
+                        await _m(self.actions_from_cog.get(_m), message, command)
                     else:
                         await _m(message, command)
 
@@ -239,7 +239,7 @@ class Bot:
         if len(self.group_photos) > 1:
             for _m in self.listeners_handle.get('on_group_photo'):
                 if _m in self.actions_from_cog:
-                    await _m(self, message, self.group_photos)
+                    await _m(self.actions_from_cog.get(_m), message, self.group_photos)
                 else:
                     _m(message, self.group_photos)
         else:
@@ -247,7 +247,7 @@ class Bot:
                 for _m in self.listeners_handle.get('on_photo'):
                     if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
                         if _m in self.actions_from_cog:
-                            await _m(self, message)
+                            await _m(self.actions_from_cog.get(_m), message)
                         else:
                             await _m(message)
         self.group_photos = []
@@ -260,7 +260,7 @@ class Bot:
             for _m in self.listeners_handle.get('on_sticker_new'):
                 if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
                     if _m in self.actions_from_cog:
-                        await _m(self, message)
+                        await _m(self.actions_from_cog.get(_m), message)
                     else:
                         await _m(message)
 
@@ -269,7 +269,7 @@ class Bot:
             for _m in self.listeners_handle.get('on_new_member'):
                 if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
                     if _m in self.actions_from_cog:
-                        await _m(self, message)
+                        await _m(self.actions_from_cog.get(_m), message)
                     else:
                         await _m(message)
 
@@ -277,7 +277,7 @@ class Bot:
         if self.listeners_handle.get('on_chat_filter'):
             for _m in self.listeners_handle.get('on_chat_filter'):
                 if _m in self.actions_from_cog:
-                    await _m(self, message)
+                    await _m(self.actions_from_cog.get(_m), message)
                 else:
                     await _m(message)
 
@@ -325,10 +325,10 @@ class Bot:
                 if 'has_arts' in dir(v):
                     command.has_arts = v.has_arts
                 self.add_command(v.__command__, command)
-                self.actions_from_cog.append(command)
+                self.actions_from_cog.update({command:cls})
             elif '__listener__' in dir(v):
                 self.add_listener(v.__listener__, v)
-                self.actions_from_cog.append(v)
+                self.actions_from_cog.update({v:cls})
                 if v.__ignore_filter__:
                     self.ignore_listener_filter.append(v)
 
@@ -347,7 +347,7 @@ class Bot:
                     if 'on_pre_command' in self.listeners_handle:
                         for _m in self.listeners_handle.get('on_pre_command'):
                             if _m in self.actions_from_cog:
-                                await _m(self, rs, message)
+                                await _m(self.actions_from_cog.get(_m), rs, message)
                             else:
                                 await _m(rs, message)
                     if len(self.chat_filter) > 0:
@@ -389,7 +389,7 @@ class Bot:
         if 'on_start' in self.listeners_handle:
             for _m in self.listeners_handle.get('on_start'):
                 if _m in self.actions_from_cog:
-                    await _m(self)
+                    await _m(self.actions_from_cog.get(_m))
                 else:
                     await _m()
         while True:

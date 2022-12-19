@@ -132,6 +132,8 @@ class Message:
             return await self.send_photo(photo,**data)
 
         data['text'] = text
+        if self.chat.id != self.message_id:
+            del data["reply_to_message_id"]
         rs = await self.bot.tg_request('sendMessage', True, **data)
         return rs.get('ok')
 
