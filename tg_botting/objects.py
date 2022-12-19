@@ -82,9 +82,12 @@ class Message:
         self.edit_date = datetime.datetime.fromtimestamp(payload.get('edit_date')) if 'edit_date' in payload else None
         self.new_chat_member = User(payload.get('new_chat_member')) if 'new_chat_member' in payload else None
         self.media_group_id = payload.get('media_group_id') if 'media_group_id' in payload else -1
-        if 'entities' in payload:
-            self.entities = [Entity(p) for p in payload.get('entities')]
-        else:
+        try:
+            if 'entities' in payload:
+                self.entities = [Entity(p) for p in payload.get('entities')]
+            else:
+                self.entities = []
+        except Exception:
             self.entities = []
 
 
