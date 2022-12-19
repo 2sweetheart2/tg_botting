@@ -214,6 +214,12 @@ class Bot:
                         await _m(message)
 
     async def dispatch_command(self, message, command):
+        if 'on_pre_command' in self.listeners_handle:
+            for _m in self.listeners_handle.get('on_pre_command'):
+                if _m in self.actions_from_cog:
+                    await _m(self.actions_from_cog.get(_m), command, message)
+                else:
+                    await _m(command, message)
         if command in self.actions_from_cog:
             await command.func(self.actions_from_cog.get(command), message)
         else:
@@ -347,12 +353,7 @@ class Bot:
                         ms.pop(0)
                     message.text = ' '.join(ms)
                     setattr(message, 'texts', ms)
-                    if 'on_pre_command' in self.listeners_handle:
-                        for _m in self.listeners_handle.get('on_pre_command'):
-                            if _m in self.actions_from_cog:
-                                await _m(self.actions_from_cog.get(_m), rs, message)
-                            else:
-                                await _m(rs, message)
+
                     if len(self.chat_filter) > 0:
                         if message.chat.id not in self.chat_filter and rs not in self.ignore_filter:
                             return await self.dispatch_chat_filter_error(message)
