@@ -82,6 +82,7 @@ class Message:
         self.edit_date = datetime.datetime.fromtimestamp(payload.get('edit_date')) if 'edit_date' in payload else None
         self.new_chat_member = User(payload.get('new_chat_member')) if 'new_chat_member' in payload else None
         self.media_group_id = payload.get('media_group_id') if 'media_group_id' in payload else -1
+        self.entities = [Entity(p) for p in payload.get('entities')] or []
 
 
     async def delete_message(self):
@@ -136,6 +137,9 @@ class Message:
             del data["reply_to_message_id"]
         rs = await self.bot.tg_request('sendMessage', True, **data)
         return rs.get('ok')
+
+
+
 
 
 class Sticker:
@@ -194,6 +198,14 @@ class User:
 
     def get_full_name(self):
         return self.first_name + ' ' + self.last_name
+
+class Entity(User):
+    def __init__(self, payload):
+        super().__init__(payload.get('user'))
+        self.offset = payload.get('offset')
+        self.length = payload.get('length')
+        self.type = payload.get('type')
+
 
 
 class UserChat:

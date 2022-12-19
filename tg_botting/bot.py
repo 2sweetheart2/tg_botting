@@ -191,7 +191,10 @@ class Bot:
                     return await self.dispatch(message)
             elif 'callback_query' in obj:
                 query = CallbackQuery(self, obj.get('callback_query'))
-                return await self.dispacth_query(query)
+                try:
+                    return await self.dispacth_query(query)
+                except Exception:
+                    traceback.print_exc()
 
     def has_prefix(self, message):
         if message.text:
