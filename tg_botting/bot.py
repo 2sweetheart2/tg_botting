@@ -183,7 +183,7 @@ class Bot:
         return message.date > date
 
     async def handleMessage(self, obj):
-        if len(obj)>=1:
+        if len(obj) >= 1:
             self.offset = obj.get('update_id') + 1
             if 'message' in obj:
                 message = Message(self, obj.get('message'))
@@ -334,10 +334,10 @@ class Bot:
                 if 'has_arts' in dir(v):
                     command.has_arts = v.has_arts
                 self.add_command(v.__command__, command)
-                self.actions_from_cog.update({command:cls})
+                self.actions_from_cog.update({command: cls})
             elif '__listener__' in dir(v):
                 self.add_listener(v.__listener__, v)
-                self.actions_from_cog.update({v:cls})
+                self.actions_from_cog.update({v: cls})
                 if v.__ignore_filter__:
                     self.ignore_listener_filter.append(v)
 
@@ -346,21 +346,19 @@ class Bot:
             ms = message.text.split(' ')
             ms.pop(0)
             rs, c, from_aliases = self.search(' '.join(ms))
-
             if rs:
                 try:
                     for i in range(c):
                         ms.pop(0)
                     message.text = ' '.join(ms)
                     setattr(message, 'texts', ms)
-
                     if len(self.chat_filter) > 0:
                         if message.chat.id not in self.chat_filter and rs not in self.ignore_filter:
                             return await self.dispatch_chat_filter_error(message)
                     await self.dispatch_command(message, rs)
                 except CallbackError as e:
                     await message.reply(e.message)
-                    return  await self.dispatch_error_command_invoke(message, rs)
+                    return await self.dispatch_error_command_invoke(message, rs)
                 except Exception as t:
                     traceback.print_exc()
                     return await self.dispatch_error_command_invoke(message, rs)
@@ -374,7 +372,6 @@ class Bot:
         elif message.new_chat_member:
             await self.dispatch_new_member(message)
 
-
     async def longpoll(self):
         data = {}
         if self.offset is None:
@@ -386,7 +383,6 @@ class Bot:
             ar = json_.get('result')
             return ar
         return None
-
 
     async def _run(self):
         updates = []
@@ -403,7 +399,6 @@ class Bot:
                     await self.handleMessage(update)
             updates = await lp
 
-
     async def general_request(self, url, post=False, **params):
         params = generals.convert_params(params)
         for tries in range(5):
@@ -417,16 +412,13 @@ class Bot:
                 print('Got exception in request: {}\nRetrying in {} seconds'.format(e, tries * 2 + 1), file=sys.stderr)
                 await asyncio.sleep(tries * 2 + 1)
 
-
     async def _tg_request(self, method, post, **kwargs):
         res = await self.general_request('https://api.telegram.org/bot{}/{}'.format(self.token, method), post=post,
                                          **kwargs)
         return res
 
-
     async def tg_request(self, method, post=True, **kwargs):
         return await self._tg_request(method, post, **kwargs)
-
 
     def run(self, token):
         generals.token = token
