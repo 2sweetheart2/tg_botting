@@ -11,8 +11,7 @@ def command(name, aliases=None, usage=None, description=None, roles=None, ignore
             setattr(func, 'usage', usage)
         if roles:
             setattr(func, 'roles', roles)
-        else:
-            setattr(func,'roles',[])
+
 
         return func
 
