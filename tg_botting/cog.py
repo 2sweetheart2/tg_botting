@@ -9,8 +9,10 @@ def command(name, aliases=None, usage=None, description=None, roles=None, ignore
             setattr(func, 'aliases', aliases)
         if usage:
             setattr(func, 'usage', usage)
-        if roles:
-            setattr(func, 'roles', roles)
+        if roles is []:
+            setattr(func, 'roles', [])
+        elif roles is not None:
+            setattr(func,'roles',roles)
 
 
         return func
