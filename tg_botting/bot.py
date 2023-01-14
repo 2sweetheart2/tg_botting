@@ -369,7 +369,7 @@ class Bot:
             await self.dispatch_photo(message)
         elif message.sticker:
             await self.dispatch_sticker(message)
-        elif message.new_chat_member:
+        elif message.new_chat_member or message.new_chat_participant:
             await self.dispatch_new_member(message)
 
     async def longpoll(self):
