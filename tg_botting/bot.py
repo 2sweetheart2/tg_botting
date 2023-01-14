@@ -48,7 +48,7 @@ class Bot:
         self.aliases = {}
         self.chat_filter = []
         self.ignore_filter = []
-        self.all_commands = []
+        self.all_commands = {}
         self._skip_check = lambda x, y: x == y
         timeout = aiohttp.ClientTimeout(total=100, connect=10)
         user_agent = kwargs.get('user_agent', None)
@@ -155,7 +155,9 @@ class Bot:
             if aliases is not None:
                 for al in aliases:
                     self.add_command(al, command)
-            self.all_commands.append(command)
+            keys = self.all_commands.get('main') or []
+            keys.append(command)
+            self.all_commands.update({'main':keys})
         return decorator
 
     def listener(self, ignore_filter=False):
@@ -336,7 +338,9 @@ class Bot:
                     command.has_arts = v.has_arts
                 self.add_command(v.__command__, command)
                 self.actions_from_cog.update({command: cls})
-                self.all_commands.append(command)
+                values = self.all_commands.get(cls.__class__.__name__) or []
+                values.append(command)
+                self.all_commands.update({cls.__class__.__name__:values})
             elif '__listener__' in dir(v):
                 self.add_listener(v.__listener__, v)
                 self.actions_from_cog.update({v: cls})
