@@ -154,7 +154,8 @@ class Bot:
                     self.add_command(al, command)
             keys = self.all_commands.get('main') or []
             keys.append(command)
-            self.all_commands.update({'main':keys})
+            self.all_commands.update({'main': keys})
+
         return decorator
 
     def listener(self, ignore_filter=False):
@@ -234,14 +235,14 @@ class Bot:
                     else:
                         await _m(message)
 
-    async def dispatch_error_command_invoke(self, message, command):
+    async def dispatch_error_command_invoke(self, message, command, exception):
         if self.listeners_handle.get('on_command_error'):
             for _m in self.listeners_handle.get('on_command_error'):
                 if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
                     if _m in self.actions_from_cog:
-                        await _m(self.actions_from_cog.get(_m), message, command)
+                        await _m(self.actions_from_cog.get(_m), message, command, exception)
                     else:
-                        await _m(message, command)
+                        await _m(message, command, exception)
 
     async def dispath_group_photo(self, message):
         time.sleep(1)
@@ -337,7 +338,7 @@ class Bot:
                 self.actions_from_cog.update({command: cls})
                 values = self.all_commands.get(cls.__class__.__name__) or []
                 values.append(command)
-                self.all_commands.update({cls.__class__.__name__:values})
+                self.all_commands.update({cls.__class__.__name__: values})
             elif '__listener__' in dir(v):
                 self.add_listener(v.__listener__, v)
                 self.actions_from_cog.update({v: cls})
@@ -361,10 +362,10 @@ class Bot:
                     await self.dispatch_command(message, rs)
                 except CallbackError as e:
                     await message.reply(e.message)
-                    return await self.dispatch_error_command_invoke(message, rs)
+                    return await self.dispatch_error_command_invoke(message, rs, e)
                 except Exception as t:
                     traceback.print_exc()
-                    return await self.dispatch_error_command_invoke(message, rs)
+                    return await self.dispatch_error_command_invoke(message, rs, t)
             else:
                 await self.dispatch_uknow_command(message)
         await self.dispatch_message(message)
