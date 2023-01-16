@@ -109,7 +109,7 @@ class Message:
         for s in self.text.split(' '):
             if s.startswith('@'):
                 if count == offset:
-                    return await User.load(self.chat.id, s, self.bot)
+                    return await User.load(s.replace("@",""), self.bot)
 
                 else:
                     count += 1
@@ -182,12 +182,12 @@ class User:
         self.language_code = payload.get('language_code')
 
     @staticmethod
-    async def load(chat_id: int, username, bot):
+    async def load(username, bot):
         if username in username_cahce:
             return user_cache.get(username_cahce.get(username))
         else:
-            rs = await bot.pyrogram.get_chat_member(chat_id, username)
-            user = await User.parse_user(rs.user)
+            rs = await bot.pyrogram.get_users(username)
+            user = await User.parse_user(rs)
             user_cache.update({user.id: user})
             username_cahce.update({username: user.id})
             return user
