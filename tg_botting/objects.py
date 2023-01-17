@@ -1,11 +1,17 @@
 import datetime
 import json
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from .user_utils import username_cahce, user_cache
 
+if TYPE_CHECKING:
+    from .bot import Bot
+
+
 class Command:
-    def __init__(self,func,name,description=None,aliases=None,usage=None,roles=None,ignore_filter=False,has_arts=False):
+    def __init__(self, func, name, description=None, aliases=None, usage=None, roles=None, ignore_filter=False,
+                 has_arts=False):
         self.func = func
         self.name = name
         self.roles = roles
@@ -13,16 +19,17 @@ class Command:
         self.aliases = aliases
         self.usage = usage
         self.ignore_filter = ignore_filter
-        self.has_arts=has_arts
+        self.has_arts = has_arts
+
 
 class CallbackQuery:
     def __init__(self, bot, payload):
-
         self.id = payload.get('id')
         self.user = User(payload.get('from'))
         self.message = Message(bot, payload.get('message'))
         self.chat_instance = payload.get('chat_instance')
         self.data = payload.get('data') if 'data' in payload else None
+
 
 class KButton:
     def __init__(self, text: str, callback_data=None, url=None):
@@ -66,8 +73,73 @@ class Keyboard:
         return dic1
 
 
+class ChatPermission:
+    def __init__(self, can_send_messages=True, can_send_media_messages=True, can_send_polls=True,
+                 can_send_other_messages=True, can_add_web_page_previews=True, can_change_info=False,
+                 can_invite_users=False, can_pin_messages=False, can_manage_topics=False):
+        self.can_send_messages = can_send_messages
+        self.can_send_media_messages = can_send_media_messages
+        self.can_send_polls = can_send_polls
+        self.can_send_other_messages = can_send_other_messages
+        self.can_add_web_page_previews = can_add_web_page_previews
+        self.can_change_info = can_change_info
+        self.can_invite_users = can_invite_users
+        self.can_pin_messages = can_pin_messages
+        self.can_manage_topics = can_manage_topics
+
+    @property
+    def to_dict(self):
+        return {
+            'can_send_messages': self.can_send_messages,
+            'can_send_media_messages': self.can_send_media_messages,
+            'can_send_polls': self.can_send_polls,
+            'can_send_other_messages': self.can_send_other_messages,
+            'can_add_web_page_previews': self.can_add_web_page_previews,
+            'can_change_info': self.can_change_info,
+            'can_invite_users': self.can_invite_users,
+            'can_pin_messages': self.can_pin_messages,
+            'can_manage_topics': self.can_manage_topics
+        }
+
+
+class PromotePermission:
+    def __init__(self, is_anonymous=False, can_manage_chat=False, can_post_messages=False, can_edit_messages=False,
+                 can_delete_messages=False, can_manage_video_chats=False, can_restrict_members=False,
+                 can_promote_members=False,
+                 can_change_info=False, can_invite_users=False, can_pin_messages=False, can_manage_topics=False):
+        self.is_anonymous = is_anonymous
+        self.can_manage_chat = can_manage_chat
+        self.can_post_messages = can_post_messages
+        self.can_edit_messages = can_edit_messages
+        self.can_delete_messages = can_delete_messages
+        self.can_manage_video_chats = can_manage_video_chats
+        self.can_restrict_members = can_restrict_members
+        self.can_promote_members = can_promote_members
+        self.can_change_info = can_change_info
+        self.can_invite_users = can_invite_users
+        self.can_pin_messages = can_pin_messages
+        self.can_manage_topics = can_manage_topics
+
+    @property
+    def to_dict(self):
+        return {
+            'is_anonymous': self.is_anonymous,
+            'can_manage_chat': self.can_manage_chat,
+            'can_post_messages': self.can_post_messages,
+            'can_edit_messages': self.can_edit_messages,
+            'can_delete_messages': self.can_delete_messages,
+            'can_manage_video_chats': self.can_manage_video_chats,
+            'can_restrict_members': self.can_restrict_members,
+            'can_promote_members': self.can_promote_members,
+            'can_change_info': self.can_change_info,
+            'can_invite_users': self.can_invite_users,
+            'can_pin_messages': self.can_pin_messages,
+            'can_manage_topics': self.can_manage_topics
+        }
+
+
 class Message:
-    def __init__(self, bot, payload):
+    def __init__(self, bot: 'Bot', payload):
         self.message_id = payload.get('message_id')
         self.user = User(payload.get('from'))
         self.chat = Chat(payload.get('chat'))
@@ -81,7 +153,8 @@ class Message:
         self.text = payload.get('text') or payload.get('caption')
         self.edit_date = datetime.datetime.fromtimestamp(payload.get('edit_date')) if 'edit_date' in payload else None
         self.new_chat_member = User(payload.get('new_chat_member')) if 'new_chat_member' in payload else None
-        self.new_chat_participant = User(payload.get('new_chat_participant')) if 'new_chat_participant' in payload else None
+        self.new_chat_participant = User(
+            payload.get('new_chat_participant')) if 'new_chat_participant' in payload else None
         self.media_group_id = payload.get('media_group_id') if 'media_group_id' in payload else -1
         try:
             if 'entities' in payload:
@@ -91,25 +164,36 @@ class Message:
         except Exception:
             self.entities = []
 
-
     async def delete_message(self):
-        return await self.bot.delete_message(self.chat.id,self.message_id)
+        return await self.bot.delete_message(self.chat.id, self.message_id)
 
     def get_text(self) -> str:
         return self.text
 
-    async def send_photo(self,photo_id:str,**kwargs):
-        return await self.bot.send_photo(self.chat.id,photo_id,**kwargs)
+    async def send_photo(self, photo_id: str, **kwargs):
+        return await self.bot.send_photo(self.chat.id, photo_id, **kwargs)
 
-    async def send(self,text: str, reply_markup=None, **kwargs):
+    async def send(self, text: str, reply_markup=None, **kwargs):
         return await self.bot.send_message(self.chat.id, text, reply_markup, **kwargs)
+
+    async def send_dice(self, emoji, **kwargs):
+        return await self.bot.send_dice(self.chat.id, emoji, **kwargs)
+
+    async def restrict_sender(self, permission: ChatPermission, until_date: int):
+        return await self.bot.restrict_chat_member(self.chat.id, self.user.id, permission, until_date)
+
+    async def promote_sender(self, promotePermission: PromotePermission):
+        return await self.bot.promote_chat_member(self.chat.id, self.user.id, promotePermission)
+
+    async def set_admin_title(self, custom_title: str):
+        return await self.bot.set_chat_administrator_custom_title(self.chat.id, self.user.id, custom_title)
 
     async def get_appeal(self, offset=1):
         count = 1
         for s in self.text.split(' '):
             if s.startswith('@'):
                 if count == offset:
-                    return await User.load(s.replace("@",""), self.bot)
+                    return await User.load(s.replace("@", ""), self.bot)
 
                 else:
                     count += 1
@@ -125,7 +209,7 @@ class Message:
             rs = await self.bot.tg_request('editMessageText', True, **data)
             return Message(self.bot, rs.get('result'))
 
-    async def reply(self, text, reply_markup=None, photo=None,parse_mode=None, **kwargs):
+    async def reply(self, text, reply_markup=None, photo=None, parse_mode=None, **kwargs):
         data = {
             'chat_id': self.chat.id or kwargs['chat_id'],
             'reply_to_message_id': self.message_id
@@ -137,16 +221,13 @@ class Message:
         if photo:
             data['caption'] = text
             data.pop('chat_id')
-            return await self.send_photo(photo,**data)
+            return await self.send_photo(photo, **data)
 
         data['text'] = text
         if self.chat.id != self.message_id:
             del data["reply_to_message_id"]
         rs = await self.bot.tg_request('sendMessage', True, **data)
         return rs.get('ok')
-
-
-
 
 
 class Sticker:
@@ -206,13 +287,13 @@ class User:
     def get_full_name(self):
         return self.first_name + ' ' + self.last_name
 
+
 class Entity:
     def __init__(self, payload):
         self.user = User(payload.get('user'))
         self.offset = payload.get('offset')
         self.length = payload.get('length')
         self.type = payload.get('type')
-
 
 
 class UserChat:

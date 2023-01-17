@@ -12,10 +12,28 @@ from pyrogram import Client
 
 from . import generals
 from .cog import Cog
-from .objects import Message, ChatActions, UserProfilePicture, CallbackQuery, Command
+from .objects import Message, ChatActions, UserProfilePicture, CallbackQuery, Command, ChatPermission, PromotePermission
 
 
 class CallbackError(Exception):
+    def __init__(self, message=None, *args):
+        if message is not None:
+            self.message = message
+            super().__init__(message, *args)
+        else:
+            super().__init__(*args)
+
+
+class ToMenyRequests(Exception):
+    def __init__(self, message=None, *args):
+        if message is not None:
+            self.message = message
+            super().__init__(message, *args)
+        else:
+            super().__init__(*args)
+
+
+class TgAPIException(Exception):
     def __init__(self, message=None, *args):
         if message is not None:
             self.message = message
@@ -88,6 +106,81 @@ class Bot:
 
     async def send_chat_action(self, chat_id, chat_action: ChatActions):
         return await self._tg_request('sendChatAction', True, **{'chat_id': chat_id, 'action': chat_action.value})
+
+    async def send_dice(self, chat_id, emoji, **kwargs):
+        dic = {
+            'chat_id': chat_id,
+            'emoji': emoji
+        }
+        dic.update(kwargs)
+        rs = await self._tg_request('sendDice', True, **dic)
+        if not rs.get('ok'):
+            if rs.get('error_code') == 429:
+                raise ToMenyRequests(message=None, *rs)
+        return rs.get('result').get('dice').get('value')
+
+    async def restrict_chat_member(self, chat_id: int, user_id: int, permission: ChatPermission, until_date=None):
+        dic = {
+            'chat_id': chat_id,
+            'user_id': user_id,
+            'permission': permission.to_dict
+        }
+        if until_date:
+            dt = datetime.datetime.now() + datetime.timedelta(seconds=int(30))
+            unix_time = time.mktime(dt.timetuple())
+            dic.update({'until_date': unix_time})
+        rs = await self._tg_request('restrictChatMember', True, **dic)
+        if not rs.get('ok'):
+            if rs.get('error_code') == 429:
+                raise ToMenyRequests(rs.get('description'), rs)
+            else:
+                raise TgAPIException(rs)
+        return rs
+
+    async def promote_chat_member(self, chat_id: int, user_id: int, promotePermission: PromotePermission):
+        dic = {
+            'chat_id': chat_id,
+            'user_id': user_id
+        }
+        dic.update(promotePermission.to_dict)
+        rs = await self._tg_request('promoteChatMember', True, **dic)
+        if not rs.get('ok'):
+            if rs.get('error_code') == 429:
+                raise ToMenyRequests(rs.get('description'), rs)
+            else:
+                raise TgAPIException(rs)
+        return rs
+
+    async def set_chat_administrator_custom_title(self, chat_id: int, user_id: int, custom_title: str):
+        dic = {
+            'chat_id': chat_id,
+            'user_id': user_id,
+            'custom_title': custom_title
+        }
+        rs = await self._tg_request('setChatAdministratorCustomTitle', True, **dic)
+        if not rs.get('ok'):
+            if rs.get('error_code') == 429:
+                raise ToMenyRequests(rs.get('description'), rs)
+            else:
+                raise TgAPIException(rs)
+        return rs
+
+    async def create_forum_topic(self, chat_id: int, name: str, icon_color=None, icon_custom_emoji_id=None):
+        dic = {
+            'chat_id': chat_id,
+            'name': name
+        }
+        if icon_color:
+            dic.update({'icon_color': icon_color})
+        if icon_custom_emoji_id:
+            dic.update({'icon_custom_emoji_id': icon_custom_emoji_id})
+        rs = await self._tg_request('createForumTopic', True, **dic)
+        if not rs.get('ok'):
+            if rs.get('error_code') == 429:
+                raise ToMenyRequests(rs.get('description'), rs)
+            else:
+                raise TgAPIException(rs)
+        return rs
 
     async def get_user_profile_picture(self, user_id, **kwargs):
         dic = {
@@ -221,6 +314,7 @@ class Bot:
                     await _m(self.actions_from_cog.get(_m), command, message)
                 else:
                     await _m(command, message)
+
         if command in self.actions_from_cog:
             await command.func(self.actions_from_cog.get(command), message)
         else:
@@ -351,21 +445,21 @@ class Bot:
             ms.pop(0)
             rs, c, from_aliases = self.search(' '.join(ms))
             if rs:
+                for i in range(c):
+                    ms.pop(0)
+                message.text = ' '.join(ms)
+                setattr(message, 'texts', ms)
+                if len(self.chat_filter) > 0:
+                    if message.chat.id not in self.chat_filter and rs not in self.ignore_filter:
+                        return await self.dispatch_chat_filter_error(message)
                 try:
-                    for i in range(c):
-                        ms.pop(0)
-                    message.text = ' '.join(ms)
-                    setattr(message, 'texts', ms)
-                    if len(self.chat_filter) > 0:
-                        if message.chat.id not in self.chat_filter and rs not in self.ignore_filter:
-                            return await self.dispatch_chat_filter_error(message)
                     await self.dispatch_command(message, rs)
                 except CallbackError as e:
                     await message.reply(e.message)
                     return await self.dispatch_error_command_invoke(message, rs, e)
-                except Exception as t:
+                except Exception as e:
+                    await self.dispatch_error_command_invoke(message, rs, e)
                     traceback.print_exc()
-                    return await self.dispatch_error_command_invoke(message, rs, t)
             else:
                 await self.dispatch_uknow_command(message)
         await self.dispatch_message(message)
