@@ -377,6 +377,16 @@ class Bot:
                     else:
                         await _m(message)
 
+    async def dispatch_chat_left_member(self, message):
+        print(self.listeners_handle.get('on_member_leave'))
+        if self.listeners_handle.get('on_member_leave'):
+            for _m in self.listeners_handle.get('on_member_leave'):
+                if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
+                    if _m in self.actions_from_cog:
+                        await _m(self.actions_from_cog.get(_m), message)
+                    else:
+                        await _m(message)
+
     async def dispatch_chat_filter_error(self, message):
         if self.listeners_handle.get('on_chat_filter'):
             for _m in self.listeners_handle.get('on_chat_filter'):
@@ -469,6 +479,8 @@ class Bot:
             await self.dispatch_sticker(message)
         elif message.new_chat_member or message.new_chat_participant:
             await self.dispatch_new_member(message)
+        elif message.left_chat_member or message.left_chat_participant:
+            await self.dispatch_chat_left_member(message)
 
     async def longpoll(self):
         data = {}

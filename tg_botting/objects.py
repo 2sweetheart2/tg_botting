@@ -155,6 +155,9 @@ class Message:
         self.new_chat_member = User(payload.get('new_chat_member')) if 'new_chat_member' in payload else None
         self.new_chat_participant = User(
             payload.get('new_chat_participant')) if 'new_chat_participant' in payload else None
+
+        self.left_chat_participant = User(payload.get('left_chat_participant')) if 'left_chat_participant' in payload else None
+        self.left_chat_member = User(payload.get('left_chat_member')) if 'left_chat_member' in payload else None
         self.media_group_id = payload.get('media_group_id') if 'media_group_id' in payload else -1
         try:
             if 'entities' in payload:
@@ -163,6 +166,14 @@ class Message:
                 self.entities = []
         except Exception:
             self.entities = []
+
+    def get_event_user(self):
+        if self.new_chat_member or self.new_chat_participant:
+            return self.new_chat_member or self.new_chat_participant
+        elif self.left_chat_participant or self.left_chat_member:
+            return self.left_chat_participant or self.left_chat_member
+        else:
+            return self.user
 
     async def delete_message(self):
         return await self.bot.delete_message(self.chat.id, self.message_id)
