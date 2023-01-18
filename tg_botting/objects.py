@@ -9,6 +9,19 @@ if TYPE_CHECKING:
     from .bot import Bot
 
 
+class LabelPrice:
+    def __init__(self, label: str, amount: int):
+        self.label = label
+        self.amount = amount
+
+    @property
+    def to_dict(self):
+        return {
+            'label': self.label,
+            'amount': self.amount
+        }
+
+
 class Command:
     def __init__(self, func, name, description=None, aliases=None, usage=None, roles=None, ignore_filter=False,
                  has_arts=False):
@@ -138,6 +151,15 @@ class PromotePermission:
         }
 
 
+class SuccessfulPayment:
+    def __init__(self, payload):
+        self.currency = payload.get('currency')
+        self.total_amount = payload.get('total_amount')
+        self.invoice_payload = payload.get('invoice_payload')
+        self.telegram_payment_charge_id = payload.get('telegram_payment_charge_id')
+        self.provider_payment_charge_id = payload.get('provider_payment_charge_id')
+
+
 class Message:
     def __init__(self, bot: 'Bot', payload):
         self.message_id = payload.get('message_id')
@@ -159,6 +181,8 @@ class Message:
             payload.get('left_chat_participant')) if 'left_chat_participant' in payload else None
         self.left_chat_member = User(payload.get('left_chat_member')) if 'left_chat_member' in payload else None
         self.media_group_id = payload.get('media_group_id') if 'media_group_id' in payload else -1
+        self.successful_payment = SuccessfulPayment(
+            payload.get('successful_payment')) if 'successful_payment' in payload else None
         try:
             if 'entities' in payload:
                 self.entities = [Entity(p) for p in payload.get('entities')]
@@ -239,6 +263,15 @@ class Message:
             del data["reply_to_message_id"]
         rs = await self.bot.tg_request('sendMessage', True, **data)
         return rs.get('ok')
+
+
+class PreCheckOutQuery:
+    def __init__(self, payload):
+        self.id = payload.get('id')
+        self.user = User(payload.get('from'))
+        self.currency = payload.get('currency')
+        self.total_amount = payload.get('total_amount')
+        self.invoice_payload = payload.get('invoice_payload')
 
 
 class Sticker:

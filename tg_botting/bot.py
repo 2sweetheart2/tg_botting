@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import json
-import logging
 import sys
 import time
 import traceback
@@ -12,7 +11,8 @@ from pyrogram import Client
 
 from . import generals
 from .cog import Cog
-from .objects import Message, ChatActions, UserProfilePicture, CallbackQuery, Command, ChatPermission, PromotePermission
+from .objects import Message, ChatActions, UserProfilePicture, CallbackQuery, Command, ChatPermission, \
+    PromotePermission, PreCheckOutQuery
 
 
 class CallbackError(Exception):
@@ -118,6 +118,23 @@ class Bot:
                 raise ToMenyRequests(message=None, *rs)
         return rs.get('result').get('dice').get('value')
 
+    async def send_invoice(self,chat_id:int,title:str,description:str,payload:str,provider_token:str,prices,currency='RUB',**kwargs):
+        dic = {
+            'chat_id':chat_id,
+            'title':title,
+            'description':description,
+            'payload':payload,
+            'provider_token':provider_token,
+            'currency':currency,
+            'prices':json.dumps([r.to_dict for r in prices]),
+        }
+        dic.update(kwargs)
+        rs = await self._tg_request('sendInvoice', True, **dic)
+        if not rs.get('ok'):
+            if rs.get('error_code') == 429:
+                raise ToMenyRequests(message=None, *rs)
+        return rs
+
     async def restrict_chat_member(self, chat_id: int, user_id: int, permission: ChatPermission, until_date=None):
         dic = {
             'chat_id': chat_id,
@@ -204,6 +221,16 @@ class Bot:
         rs = await self._tg_request('answerCallbackQuery', True, **dic)
         return await self.prefe_incomming_message(rs)
 
+    async def answer_pre_checkout_query(self,pre_checkout_query_id:str,ok:bool,error_message=None):
+        dic = {
+            'pre_checkout_query_id':pre_checkout_query_id,
+            'ok':ok
+        }
+        if error_message:
+            dic.update({'error_message':error_message})
+        rs = await self._tg_request('answerPreCheckoutQuery', True, **dic)
+        return await self.prefe_incomming_message(rs)
+
     async def send_message(self, chat_id: int, text: str, reply_markup=None, **kwargs):
         dic = {
             'chat_id': chat_id,
@@ -271,6 +298,13 @@ class Bot:
             else:
                 await _m(query)
 
+    async def dispatch_pre_checkout_query(self,preCheckOutQuery:PreCheckOutQuery):
+        for _m in self.listeners_handle.get('pre_checkout_query'):
+            if _m in self.actions_from_cog:
+                await _m(self.actions_from_cog.get(_m), preCheckOutQuery)
+            else:
+                await _m(preCheckOutQuery)
+
     async def check_date(self, message):
         date = datetime.datetime.now() - datetime.timedelta(seconds=5)
         return message.date > date
@@ -286,6 +320,12 @@ class Bot:
                 query = CallbackQuery(self, obj.get('callback_query'))
                 try:
                     return await self.dispacth_query(query)
+                except Exception:
+                    traceback.print_exc()
+            elif 'pre_checkout_query' in obj:
+                preCheckOunt = PreCheckOutQuery(obj.get('pre_checkout_query'))
+                try:
+                    return await self.dispatch_pre_checkout_query(preCheckOunt)
                 except Exception:
                     traceback.print_exc()
 
@@ -355,6 +395,15 @@ class Bot:
                             await _m(message)
         self.group_photos = []
 
+    async def dispatch_payment(self,message):
+        if self.listeners_handle.get('on_payment'):
+            for _m in self.listeners_handle.get('on_payment'):
+                if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
+                    if _m in self.actions_from_cog:
+                        await _m(self.actions_from_cog.get(_m), message)
+                    else:
+                        await _m(message)
+
     async def dispatch_photo(self, message):
         await self.dispath_group_photo(message)
 
@@ -377,7 +426,6 @@ class Bot:
                         await _m(message)
 
     async def dispatch_chat_left_member(self, message):
-        print(self.listeners_handle.get('on_member_leave'))
         if self.listeners_handle.get('on_member_leave'):
             for _m in self.listeners_handle.get('on_member_leave'):
                 if _m in self.ignore_listener_filter or message.chat.id in self.chat_filter:
@@ -472,7 +520,9 @@ class Bot:
             else:
                 await self.dispatch_uknow_command(message)
         await self.dispatch_message(message)
-        if message.photo:
+        if message.successful_payment:
+            await self.dispatch_payment(message)
+        elif message.photo:
             await self.dispatch_photo(message)
         elif message.sticker:
             await self.dispatch_sticker(message)
@@ -480,6 +530,7 @@ class Bot:
             await self.dispatch_new_member(message)
         elif message.left_chat_member or message.left_chat_participant:
             await self.dispatch_chat_left_member(message)
+
 
     async def longpoll(self):
         data = {}
