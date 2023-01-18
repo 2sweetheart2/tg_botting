@@ -46,7 +46,6 @@ class Bot:
 
     def __init__(self, prefixs, user_id, user_hash, **kwargs):
         self.pyrogram = Client('me', user_id, user_hash).start()
-        logging.basicConfig(level=logging.INFO)
         self.random_cog = None
         self.url = ''
         self.token = ''

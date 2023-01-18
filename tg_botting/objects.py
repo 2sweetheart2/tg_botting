@@ -155,8 +155,8 @@ class Message:
         self.new_chat_member = User(payload.get('new_chat_member')) if 'new_chat_member' in payload else None
         self.new_chat_participant = User(
             payload.get('new_chat_participant')) if 'new_chat_participant' in payload else None
-
-        self.left_chat_participant = User(payload.get('left_chat_participant')) if 'left_chat_participant' in payload else None
+        self.left_chat_participant = User(
+            payload.get('left_chat_participant')) if 'left_chat_participant' in payload else None
         self.left_chat_member = User(payload.get('left_chat_member')) if 'left_chat_member' in payload else None
         self.media_group_id = payload.get('media_group_id') if 'media_group_id' in payload else -1
         try:
