@@ -191,6 +191,14 @@ class Message:
         except Exception:
             self.entities = []
 
+    async def get_photos(self):
+        if not self.photo:
+            return None
+        rs = (await self.bot.get_file(self.photo.file_id)).get('result')
+        return rs.get('file_id')
+
+
+
     def get_event_user(self):
         if self.new_chat_member or self.new_chat_participant:
             return self.new_chat_member or self.new_chat_participant

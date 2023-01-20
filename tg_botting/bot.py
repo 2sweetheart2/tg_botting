@@ -242,6 +242,16 @@ class Bot:
         rs = await self._tg_request('sendMessage', True, **dic)
         return await self.prefe_incomming_message(rs)
 
+    async def get_file(self,file_id:str):
+        dic = {'file_id':file_id}
+        rs = await self._tg_request('getFile',True,**dic)
+        if not rs.get('ok'):
+            if rs.get('error_code') == 429:
+                raise ToMenyRequests(rs.get('description'), rs)
+            else:
+                raise TgAPIException(rs)
+        return rs
+
     async def prefe_incomming_message(self, message):
         if not message.get('ok'):
             for _m in self.listeners_handle.get('on_invoke_command_error'):
