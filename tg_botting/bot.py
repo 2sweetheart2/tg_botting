@@ -209,8 +209,8 @@ class Bot:
     async def kick_chat_member(self, chat_id: int, user_id: int):
         return await self._tg_request('kickChatMember', True, **{'chat_id': chat_id, 'user_id': user_id})
 
-    async def unban_chat_member(self, chat_id: int, user_id: int):
-        return await self._tg_request('unbanChatMember', True, **{'chat_id': chat_id, 'user_id': user_id})
+    async def unban_chat_member(self, chat_id: int, user_id: int,only_if_banned:bool = False):
+        return await self._tg_request('unbanChatMember', True, **{'chat_id': chat_id, 'user_id': user_id, 'only_if_banned':only_if_banned})
 
     async def answer_callback_query(self, id: int, text: str, show_alert=False):
         dic = {
