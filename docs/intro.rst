@@ -82,15 +82,12 @@ A quick example to showcase how events work:
 
     bot = Bot(['your','prefixs'], user_id, user_hash)
 
+    @bot.listener()
+    async def on_message_new(message):
+        print(message.text)
 
-    class MyBot(vk_botting.Bot):
-        async def on_ready(self):
-            print(f'Logged on as {self.group.name}!')
+    @bot.listener()
+    async def on_start():
+        print('start')
 
-        async def on_message_new(self, message):
-            author = await message.get_author()
-            print(f'Message from {author.first_name}: {message.text}')
-
-
-    bot = MyBot('your-prefix-here')
-    bot.run('your-token-here')
+    bot.run(bot-token)
