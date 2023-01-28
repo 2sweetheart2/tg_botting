@@ -74,6 +74,15 @@ vk-botting revolves around the concept of :ref:`events <tg_api_events>`.
 An event is something you listen to and then respond to. For example, when a message
 happens, you will receive an event about it that you can respond to.
 
+for find user_id and user_hash:
+
+Visit https://my.telegram.org/apps and log in with your Telegram account.
+
+Fill out the form with your details and register a new Telegram application.
+
+Done. The API key consists of two parts: user_id and user_hash. Keep it secret.
+
+
 A quick example to showcase how events work:
 
 .. code-block:: python3

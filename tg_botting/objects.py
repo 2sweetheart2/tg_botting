@@ -208,6 +208,13 @@ class Message:
             return self.user
 
     async def delete_message(self):
+        """
+        Delete this message in chat
+
+        Parameters
+        -----------
+        None
+        """
         return await self.bot.delete_message(self.chat.id, self.message_id)
 
     def get_text(self) -> str:

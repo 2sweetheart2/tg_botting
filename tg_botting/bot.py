@@ -82,9 +82,31 @@ class Bot:
     # <---- custom API actions start ----> #
 
     async def delete_message(self, chat_id, message_id, revoke=True):
+        """
+        Delete message in chat_id with id of message_id
+
+        Parameters
+        -----------
+        chat_id: :class:`int`
+            The chat id where need delete message
+        message_id: :class:`int`
+            The uid of message who need delete
+        """
         return await self.pyrogram.delete_messages(chat_id, message_id, revoke)
 
     async def send_photo(self, chat_id: int, photo: str, **kwargs):
+        """
+        Send photo in chat with chat_id
+
+        Parameters
+        -----------
+        chat_id: :class:`int`
+            The chat id where need send photo
+        photo: :class:`str`
+            The file_id of file
+        **kwargs:
+            another parameters, see `Telegramm API <https://core.telegram.org/bots/api#sendphoto>`_
+        """
         dic = {
             'chat_id': chat_id,
             'photo': photo
@@ -96,6 +118,18 @@ class Bot:
         return await self._tg_request('sendPhoto', True, **dic)
 
     async def send_sticker(self, chat_id, sticker, **kwargs):
+        """
+        Send stricker in chat with chat_id
+
+        Parameters
+        -----------
+        chat_id: :class:`int`
+            The chat id where need send sticker
+        sticker: :class:`str`
+            The file_id of sticker
+        **kwargs:
+            another parameters, see `Telegramm API <https://core.telegram.org/bots/api#sendsticker>`_
+        """
         dic = {
             'chat_id': chat_id,
             'sticker': sticker
@@ -104,9 +138,31 @@ class Bot:
         return await self._tg_request('sendSticker', True, **dic)
 
     async def send_chat_action(self, chat_id, chat_action: ChatActions):
+        """
+        Send bot action in chat with chat_id
+
+        Parameters
+        -----------
+        chat_id: :class:`int`
+            The chat id where need send action
+        chat_action: :class:`.ChatActions`
+            The chat action that will be display in chat. see `Telegramm API <https://core.telegram.org/bots/api#sendchataction>`_
+        """
         return await self._tg_request('sendChatAction', True, **{'chat_id': chat_id, 'action': chat_action.value})
 
     async def send_dice(self, chat_id, emoji, **kwargs):
+        """
+        Send dice in chat with chat_id
+
+        Parameters
+        -----------
+        chat_id: :class:`int`
+            The chat id where need send dice
+        emoji: :class:`str`
+            The emoji that need send
+        **kwargs:
+            see `Telegramm API <https://core.telegram.org/bots/api#senddice>`_
+        """
         dic = {
             'chat_id': chat_id,
             'emoji': emoji
@@ -119,6 +175,28 @@ class Bot:
         return rs.get('result').get('dice').get('value')
 
     async def send_invoice(self,chat_id:int,title:str,description:str,payload:str,provider_token:str,prices,currency='RUB',**kwargs):
+        """
+        Send invoice (payment) message in chat
+
+        Parameters
+        -----------
+        chat_id: :class:`int`
+            The chat id where need send photo
+        title: :class:`str`
+            The title of invoice
+        description: :class:`str`
+            The description of invoice
+        payload: :class:`str`
+            The some information who will be transfer in handler, who handler user's pay
+        provider_token: :class:`str`
+            The payment token, see https://core.telegram.org/bots/payments
+        prices: :class:`int`
+            The price
+        currency: :class:`str`
+            The code of price, eg. 'RUB','USD'
+        **kwargs:
+            see `Telegramm API <https://core.telegram.org/bots/api#sendinvoice>`_
+        """
         dic = {
             'chat_id':chat_id,
             'title':title,
