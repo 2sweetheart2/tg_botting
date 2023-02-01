@@ -376,6 +376,9 @@ class Chat:
             self.chatObj = UserChat(payload)
         elif type == 'group':
             self.chatObj = GroupChat(payload)
+        self.invite_link = payload.get('invite_link') if 'invite_link' in payload else None
+        self.permissions = ChatPermission(payload.get('permissions')) if 'permissions' in payload else None
+        self.join_to_send_messages = payload.get('join_to_send_messages') if 'join_to_send_messages' in payload else False
 
 
 class ChatActions(Enum):

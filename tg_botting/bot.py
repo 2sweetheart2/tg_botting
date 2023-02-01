@@ -12,7 +12,7 @@ from pyrogram import Client
 from . import generals
 from .cog import Cog
 from .objects import Message, ChatActions, UserProfilePicture, CallbackQuery, Command, ChatPermission, \
-    PromotePermission, PreCheckOutQuery
+    PromotePermission, PreCheckOutQuery, Chat
 
 
 class CallbackError(Exception):
@@ -212,6 +212,15 @@ class Bot:
             if rs.get('error_code') == 429:
                 raise ToMenyRequests(message=None, *rs)
         return rs
+
+    async def get_chat(self,chat_id:int):
+        rs = await self._tg_request('getChat',True,**{'chat_id':chat_id})
+        if not rs.get('ok'):
+            if rs.get('error_code') == 429:
+                raise ToMenyRequests(rs.get('description'), rs)
+            else:
+                raise TgAPIException(rs)
+        return Chat(rs.get('result'))
 
     async def restrict_chat_member(self, chat_id: int, user_id: int, permission: ChatPermission, until_date=None):
         dic = {
