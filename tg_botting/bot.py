@@ -45,7 +45,10 @@ class TgAPIException(Exception):
 class Bot:
 
     def __init__(self, prefixs, user_id, user_hash, **kwargs):
-        self.pyrogram = Client('me', user_id, user_hash).start()
+        if user_id and user_hash:
+            self.pyrogram = Client('me', user_id, user_hash).start()
+        else:
+            self.pyrogram = None
         self.random_cog = None
         self.url = ''
         self.token = ''
@@ -93,6 +96,16 @@ class Bot:
             The uid of message who need delete
         """
         return await self.pyrogram.delete_messages(chat_id, message_id, revoke)
+
+    async def forward_message(self,chat_id:int,message_id:int,from_chat_id:int,**kwargs):
+        dic = {
+            'chat_id':chat_id,
+            'message_id':message_id,
+            'from_chat_id':from_chat_id
+        }
+        if kwargs:
+            dic.update(kwargs)
+        return await self._tg_request('forwardMessage',True,**dic)
 
     async def send_photo(self, chat_id: int, photo: str, **kwargs):
         """
