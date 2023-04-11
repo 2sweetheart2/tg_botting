@@ -183,6 +183,8 @@ class Message:
         self.media_group_id = payload.get('media_group_id') if 'media_group_id' in payload else -1
         self.successful_payment = SuccessfulPayment(
             payload.get('successful_payment')) if 'successful_payment' in payload else None
+        self.forward_from = User(payload.get('forward_from')) if 'forward_from' in payload else None
+        self.forward_date = payload.get('forward_date') if 'forward_date' in payload else None
         try:
             if 'entities' in payload:
                 self.entities = [Entity(p) for p in payload.get('entities')]
@@ -264,6 +266,10 @@ class Message:
             'chat_id': self.chat.id or kwargs['chat_id'],
             'reply_to_message_id': self.message_id
         }
+        if len(text) > 4096:
+            data['text'] = text[0:4096]
+            rs = await self.bot.tg_request('sendMessage', True, **data)
+        data['text'] = text[4096:len(text)]
         if parse_mode:
             data['parse_mode'] = parse_mode
         if reply_markup:
@@ -272,10 +278,7 @@ class Message:
             data['caption'] = text
             data.pop('chat_id')
             return await self.send_photo(photo, **data)
-
         data['text'] = text
-        if self.chat.id != self.message_id:
-            del data["reply_to_message_id"]
         rs = await self.bot.tg_request('sendMessage', True, **data)
         return rs.get('ok')
 

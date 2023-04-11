@@ -60,6 +60,7 @@ class Bot:
         self.actions_from_cog = {}
         self.command_roles = {}
         self.ignore_listener_filter = []
+        self.trigger_on_forward_message = True
         self.message_handlers = {}
         self.listeners_handle = {}
         self.aliases = {}
@@ -425,6 +426,9 @@ class Bot:
             if 'message' in obj:
                 message = Message(self, obj.get('message'))
                 if await self.check_date(message):
+                    if not self.trigger_on_forward_message:
+                        if message.forward_from is not None or message.forward_date is not None:
+                            return
                     return await self.dispatch(message)
             elif 'callback_query' in obj:
                 query = CallbackQuery(self, obj.get('callback_query'))
@@ -669,7 +673,7 @@ class Bot:
                     await self.handleMessage(update)
             updates = await lp
 
-    async def general_request(self, url, post=False, **params):
+    async def general_request(self, url, post=False, file=None, **params):
         params = generals.convert_params(params)
         for tries in range(5):
             try:
