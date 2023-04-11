@@ -266,19 +266,18 @@ class Message:
             'chat_id': self.chat.id or kwargs['chat_id'],
             'reply_to_message_id': self.message_id
         }
-        if len(text) > 4096:
-            data['text'] = text[0:4096]
-            rs = await self.bot.tg_request('sendMessage', True, **data)
-        data['text'] = text[4096:len(text)]
         if parse_mode:
             data['parse_mode'] = parse_mode
         if reply_markup:
             data['reply_markup'] = json.dumps(reply_markup.to_dict())
+        if len(text) > 4096:
+            data['text'] = text[0:4096]
+            rs = await self.bot.tg_request('sendMessage', True, **data)
         if photo:
             data['caption'] = text
             data.pop('chat_id')
             return await self.send_photo(photo, **data)
-        data['text'] = text
+        data['text'] = text[4096:len(text)]
         rs = await self.bot.tg_request('sendMessage', True, **data)
         return rs.get('ok')
 
