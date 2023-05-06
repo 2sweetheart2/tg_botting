@@ -275,11 +275,12 @@ class Message:
             data.pop('chat_id')
             return await self.send_photo(photo, **data)
         if len(text) > 4096:
-            data['text'] = text[0:4096]
-            rs = await self.bot.tg_request('sendMessage', True, **data)
-            data['text'] = text[4096:len(text)]
-            rs = await self.bot.tg_request('sendMessage', True, **data)
-            return rs.get('ok')
+            datas = []
+            for i in range(0,len(text)//4096):
+                data['text'] = text[i*4096:(i+1)*4096]
+                rs = await self.bot.tg_request('sendMessage', True, **data)
+                datas.append(rs)
+            return datas
         data['text'] = text
         rs = await self.bot.tg_request('sendMessage', True, **data)
         return rs.get('ok')
