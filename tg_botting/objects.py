@@ -274,13 +274,14 @@ class Message:
             data['caption'] = text
             data.pop('chat_id')
             return await self.send_photo(photo, **data)
-        if len(text) > 4096:
-            datas = []
-            for i in range(0,len(text)//4096):
-                data['text'] = text[i*4096:(i+1)*4096]
-                rs = await self.bot.tg_request('sendMessage', True, **data)
-                datas.append(rs)
-            return datas
+        if text is not None:
+            if len(text) > 4096:
+                datas = []
+                for i in range(0,len(text)//4094):
+                    data['text'] = text[i*4096:(i+1)*4094]
+                    rs = await self.bot.tg_request('sendMessage', True, **data)
+                    datas.append(rs)
+                return datas
         data['text'] = text
         rs = await self.bot.tg_request('sendMessage', True, **data)
         return rs.get('ok')
