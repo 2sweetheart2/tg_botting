@@ -277,7 +277,7 @@ class Message:
         if text is not None:
             if len(text) > 4096:
                 datas = []
-                for i in range(0,len(text)//4094):
+                for i in range(0,(len(text)//4094)+1):
                     data['text'] = text[i*4096:(i+1)*4094]
                     rs = await self.bot.tg_request('sendMessage', True, **data)
                     datas.append(rs)
