@@ -8,8 +8,10 @@ import traceback
 from inspect import signature
 
 import aiohttp
+import pyrogram
 import requests
 from pyrogram import Client
+from pyrogram.errors.exceptions import bad_request_400
 
 from . import generals
 from .cog import Cog
@@ -651,14 +653,12 @@ class Bot:
                 put_args = []
                 first = False
                 minus = 1
-                for i in range(0,len(need_args.parameters)):
-                    if list(need_args.parameters)[i]=='self':
-                        minus+=1
-                        continue
-                    if not first:
-                        first = True
-                        continue
-                    val = list(need_args.parameters.values())[i]
+                na = dict(need_args.parameters)
+                if 'self' in na.keys():
+                    na.pop('self')
+                na.pop('message')
+                for i in range(0,len(na)):
+                    val = list(na.values())[i]
                     try:
                         if val.annotation != inspect.Parameter.empty:
                             if not isinstance(args[i-minus],val.annotation):
