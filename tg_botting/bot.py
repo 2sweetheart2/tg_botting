@@ -650,8 +650,10 @@ class Bot:
                 need_args = signature(rs.func)
                 put_args = []
                 first = False
+                minus = 1
                 for i in range(0,len(need_args.parameters)):
                     if list(need_args.parameters)[i]=='self':
+                        minus+=1
                         continue
                     if not first:
                         first = True
@@ -659,12 +661,12 @@ class Bot:
                     val = list(need_args.parameters.values())[i]
                     try:
                         if val.annotation != inspect.Parameter.empty:
-                            if not isinstance(args[i-1],val.annotation):
-                                return await self.tupe_error(message,args[i-1],val.annotation)
+                            if not isinstance(args[i-minus],val.annotation):
+                                return await self.tupe_error(message,args[i-minus],val.annotation)
                     except IndexError as e:
                         put_args.append(None)
                         continue
-                    put_args.append(args[i-1])
+                    put_args.append(args[i-minus])
                     ms.pop(0)
                 message.text = ' '.join(ms)
                 setattr(message, 'texts', ms)
