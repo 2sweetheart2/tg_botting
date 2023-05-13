@@ -274,6 +274,7 @@ class Message:
             data['caption'] = text
             data.pop('chat_id')
             return await self.send_photo(photo, **data)
+        text = str(text)
         if text is not None:
             if len(text) > 4096:
                 datas = []

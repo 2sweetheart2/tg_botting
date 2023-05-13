@@ -1,9 +1,11 @@
 import asyncio
 import datetime
+import inspect
 import json
 import sys
 import time
 import traceback
+from inspect import signature
 
 import aiohttp
 import requests
@@ -12,7 +14,7 @@ from pyrogram import Client
 from . import generals
 from .cog import Cog
 from .objects import Message, ChatActions, UserProfilePicture, CallbackQuery, Command, ChatPermission, \
-    PromotePermission, PreCheckOutQuery, Chat
+    PromotePermission, PreCheckOutQuery, Chat, User
 
 
 class CallbackError(Exception):
@@ -53,6 +55,7 @@ class Bot:
         self.url = ''
         self.token = ''
         self.offset = None
+        self.type_error_message = 'Вы не правильно указали одно значение. Вместо \'{}\' нужна {}'
         self.bot = self
         self.prefix = prefixs
         self.__cogs = {}
@@ -460,7 +463,7 @@ class Bot:
                     else:
                         await _m(message)
 
-    async def dispatch_command(self, message, command):
+    async def dispatch_command(self, message, command,args):
         if 'on_pre_command' in self.listeners_handle:
             for _m in self.listeners_handle.get('on_pre_command'):
                 if _m in self.actions_from_cog:
@@ -469,9 +472,9 @@ class Bot:
                     await _m(command, message)
 
         if command in self.actions_from_cog:
-            await command.func(self.actions_from_cog.get(command), message)
+            await command.func(self.actions_from_cog.get(command), message,*args)
         else:
-            await command.func(message)
+            await command.func(message,*args)
 
     async def dispatch_uknow_command(self, message):
         if self.listeners_handle.get("on_unknow_command"):
@@ -610,13 +613,58 @@ class Bot:
                 if v.__ignore_filter__:
                     self.ignore_listener_filter.append(v)
 
+    async def get_args(self,args):
+        data = []
+        for arg in args:
+            try:
+                data.append(int(arg))
+                continue
+            except:
+                pass
+            if arg[0] == '@':
+                data.append(await User.load(arg,self))
+                continue
+            data.append(arg)
+        return data
+
+    async def tupe_error(self,message, arg,need_type):
+        type = need_type
+        if need_type==int:
+            type = 'число'
+        elif need_type==str:
+            type = 'строка'
+        elif need_type==User:
+            type = 'пользователь'
+        await message.reply(self.type_error_message.format(arg,type))
+
+
     async def dispatch(self, message):
         if self.has_prefix(message):
-            ms = message.text.split(' ')
+            ms = message.text.split()
             ms.pop(0)
             rs, c, from_aliases = self.search(' '.join(ms))
             if rs:
                 for i in range(c):
+                    ms.pop(0)
+                args = await self.get_args(ms)
+                need_args = signature(rs.func)
+                put_args = []
+                first = False
+                for i in range(0,len(need_args.parameters)):
+                    if list(need_args.parameters)[i]=='self':
+                        continue
+                    if not first:
+                        first = True
+                        continue
+                    val = list(need_args.parameters.values())[i]
+                    try:
+                        if val.annotation != inspect.Parameter.empty:
+                            if not isinstance(args[i-1],val.annotation):
+                                return await self.tupe_error(message,args[i-1],val.annotation)
+                    except IndexError as e:
+                        put_args.append(None)
+                        continue
+                    put_args.append(args[i-1])
                     ms.pop(0)
                 message.text = ' '.join(ms)
                 setattr(message, 'texts', ms)
@@ -624,7 +672,7 @@ class Bot:
                     if message.chat.id not in self.chat_filter and rs not in self.ignore_filter:
                         return await self.dispatch_chat_filter_error(message)
                 try:
-                    await self.dispatch_command(message, rs)
+                    await self.dispatch_command(message, rs,put_args)
                 except CallbackError as e:
                     await message.reply(e.message)
                     return await self.dispatch_error_command_invoke(message, rs, e)
