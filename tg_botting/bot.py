@@ -651,12 +651,14 @@ class Bot:
                 args = await self.get_args(ms)
                 need_args = signature(rs.func)
                 put_args = []
-                first = False
                 minus = 1
                 na = dict(need_args.parameters)
                 if 'self' in na.keys():
                     na.pop('self')
-                na.pop('message')
+                try:
+                    na.pop(list(na.keys())[0])
+                except:
+                    pass
                 for i in range(0,len(na)):
                     val = list(na.values())[i]
                     try:
