@@ -11,6 +11,7 @@ import aiohttp
 import pyrogram
 import requests
 from pyrogram import Client
+from pyrogram.errors import UsernameInvalid
 from pyrogram.errors.exceptions import bad_request_400
 
 from . import generals
@@ -624,7 +625,10 @@ class Bot:
             except:
                 pass
             if arg[0] == '@':
-                data.append(await User.load(arg,self))
+                try:
+                    data.append(await User.load(arg,self))
+                except UsernameInvalid:
+                    data.append(None)
                 continue
             data.append(arg)
         return data
@@ -637,6 +641,9 @@ class Bot:
             type = 'строка'
         elif need_type==User:
             type = 'пользователь'
+
+        if isinstance(arg,User):
+            arg='пользователь'
         await message.reply(self.type_error_message.format(arg,type))
 
 
@@ -651,25 +658,28 @@ class Bot:
                 args = await self.get_args(ms)
                 need_args = signature(rs.func)
                 put_args = []
-                minus = 1
                 na = dict(need_args.parameters)
                 if 'self' in na.keys():
                     na.pop('self')
                 try:
                     na.pop(list(na.keys())[0])
                 except:
-                    pass
-                for i in range(0,len(na)):
-                    val = list(na.values())[i]
-                    try:
-                        if val.annotation != inspect.Parameter.empty:
-                            if not isinstance(args[i-minus],val.annotation):
-                                return await self.tupe_error(message,args[i-minus],val.annotation)
-                    except IndexError as e:
-                        put_args.append(None)
-                        continue
-                    put_args.append(args[i-minus])
-                    ms.pop(0)
+                    print("ERROR: ",na,'\n','put_args: ',put_args,'\nargs: ',args,rs)
+                try:
+                    for i in range(0,len(na)):
+                        val = list(na.values())[i]
+                        try:
+                            if val.annotation != inspect.Parameter.empty:
+                                if not isinstance(args[i],val.annotation):
+                                    return await self.tupe_error(message,args[i],val.annotation)
+                        except IndexError as e:
+                            put_args.append(None)
+                            continue
+                        put_args.append(args[i])
+                        ms.pop(0)
+                except:
+                    print("ERROR2: ",na,'\n','put_args: ',put_args,'\nargs: ',args,rs)
+
                 message.text = ' '.join(ms)
                 setattr(message, 'texts', ms)
                 if len(self.chat_filter) > 0:
