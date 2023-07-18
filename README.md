@@ -1,48 +1,18 @@
-# tg_bottng
+# TG-Botting
 
-python library for easy creation of a telegram bot
+[![Documentation Status](https://readthedocs.org/projects/tg-botting/badge/?version=latest)](https://vk-botting.readthedocs.io/en/latest/?badge=latest)
 
-## Install
-
-Use pip3
-
-```
-pip3 install tg-botting
-```
-
-Quick Start
-
-```python
-from tg_botting.bot import Bot
-
-# user_id and user_hash - user application in telegram 
-
-bot = Bot(['prefixs'],'user_id','user_hash')
-
-# send message
-
-@bot.command('ping')
-async def ping(message):
-    await bot.send_message(message.chat.id,'pong')
-
-# reply
-
-@bot.command('ping reply')
-async def ping(message):
-    await message.reply('pong reply')
-    
-# start
-
-bot.run(your_bot_token)
-
-```
-
-for find user_id and user_hash:
- 1) Visit https://my.telegram.org/apps and log in with your Telegram account.
-
- 2) Fill out the form with your details and register a new Telegram application.
-
- 3) Done. The API key consists of two parts: api_id and api_hash. Keep it secret.
-
-
-Visit full doc: https://github.com/2sweetheart2/tg_botting/wiki/Start
+tg_botting is a package for building async TG bots.<br>
+It is in development so it can be buggy or not implement all latest features of TG API.<br>
+That is also why it does not have full documentation atm.<br>
+Partial docs: [Russian](https://vk-botting.readthedocs.io/ru/latest) or [English](https://vk-botting.readthedocs.io/en/latest).<br>
+<br>
+For any questions, suggestions or reports, use either [Telegram chat](https://t.me/vk_botting) or [GitHub Issues](https://github.com/3sweetheart2/tg-botting/issues).<br>
+<br>
+<br>
+tg_botting - библиотека для создания асинхронных ботов для TG.<br>
+Она все еще в разработке, так что в некоторых местах может содержать баги, или же не полностью реализовывать все последние возможности TG API.<br>
+По той же причине у нее на данный момент может не быть исчерпывающей документации.<br>
+Частичная документация: [На русском](https://vk-botting.readthedocs.io/ru/latest) или [На английском](https://vk-botting.readthedocs.io/en/latest).<br>
+<br>
+Со всеми вопросами, предложениями и проблемами можете обращаться либо в [Чат Telegram](https://t.me/vk_botting), либо в [Раздел Issues на GitHub](https://github.com/MrDandycorn/vk-botting/issues).

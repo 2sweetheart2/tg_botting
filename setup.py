@@ -1,39 +1,77 @@
-import codecs
-import os
-
 from setuptools import setup
+import re
 
-here = os.path.abspath(os.path.dirname(__file__))
+requirements = []
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
 
-with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as fh:
-    long_description = "\n" + fh.read()
+version = ''
+with open('tg_botting/__init__.py') as f:
+    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', f.read(), re.MULTILINE).group(1)
 
-VERSION = '1.6.2.6'
-DESCRIPTION = 'python library for easy creation of a telegram bot.'
-LONG_DESCRIPTION = 'A package that allows you to create bots for telegram using its entire API.'
+if not version:
+    raise RuntimeError('version is not set')
 
-setup(
-    name="tg-botting",
-    version=VERSION,
-    url='https://github.com/2sweetheart2/tg_botting/tree/master',
-    author="Sweetie (Roma Fomkin)",
-    author_email="<2004sweetheart2004@gmail.com>",
-    description=DESCRIPTION,
-    long_description_content_type="text/markdown",
-    long_description=LONG_DESCRIPTION,
-    packages=['tg_botting'],
-    install_requires=['pyrogram', 'requests', 'aiohttp', 'datetime', 'TgCrypto'],
-    keywords=['python', 'bot', 'tg', 'tg bot', 'telegram', 'telegram bot', 'botting'],
-    classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "Programming Language :: Python :: 3",
-        "Operating System :: Unix",
-        "Operating System :: MacOS :: MacOS X",
-        "Operating System :: Microsoft :: Windows",
-        'Topic :: Internet',
-        'Topic :: Software Development :: Libraries',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: Utilities',
+if version.endswith(('a', 'b', 'rc')):
+    try:
+        import subprocess
+
+        p = subprocess.Popen(['git', 'rev-list', '--count', 'HEAD'],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        if out:
+            version += out.decode('utf-8').strip()
+        p = subprocess.Popen(['git', 'rev-parse', '--short', 'HEAD'],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        if out:
+            version += '+g' + out.decode('utf-8').strip()
+    except Exception:
+        pass
+
+readme = ''
+with open('README.md') as f:
+    readme = f.read()
+
+extras_require = {
+    'docs': [
+        'sphinx==3.0.3',
+        'sphinxcontrib_trio==1.1.2',
+        'sphinxcontrib-websupport',
     ]
-)
+}
+
+setup(name='tg-botting',
+      author='Sweetie (Roma Fomkin)',
+      url='https://github.com/2sweetheart2/tg_botting',
+      project_urls={
+          # "Documentation": "https://vk-botting.readthedocs.io/en/latest/",
+          # "Issue tracker": "https://github.com/MrDandycorn/vk-botting/issues",
+      },
+      version=version,
+      packages=['tg_botting'],
+      license='MIT',
+      description='A basic package for building async TG bots',
+      long_description=readme,
+      long_description_content_type="text/markdown",
+      include_package_data=True,
+      install_requires=requirements,
+      extras_require=extras_require,
+      python_requires='>=3.6.0',
+      classifiers=[
+          'Development Status :: 4 - Beta',
+          'License :: OSI Approved :: MIT License',
+          'Intended Audience :: Developers',
+          'Natural Language :: English',
+          'Natural Language :: Russian',
+          'Operating System :: OS Independent',
+          'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3.7',
+          'Programming Language :: Python :: 3.8',
+          'Programming Language :: Python :: 3.9',
+          'Topic :: Internet',
+          'Topic :: Software Development :: Libraries',
+          'Topic :: Software Development :: Libraries :: Python Modules',
+          'Topic :: Utilities',
+      ]
+      )

@@ -1,406 +1,906 @@
-import datetime
 import json
-from enum import Enum
-from typing import TYPE_CHECKING
+from copy import deepcopy
+from datetime import datetime
 
-from .user_utils import username_cahce, user_cache
-
-if TYPE_CHECKING:
-    from .bot import Bot
+from tg_botting.user import User
+from tg_botting.utils import get_params_from_func, get_params_from_class
 
 
-class LabelPrice:
-    def __init__(self, label: str, amount: int):
-        self.label = label
-        self.amount = amount
+def get_chat_member(response):
+    chatMember = ChatMember(response)
+    if chatMember.status == 'creator':
+        return ChatMemberOwner(response)
+    elif chatMember.status == 'administrator':
+        return ChatMemberAdministrator(response)
+    elif chatMember.status == 'member':
+        return ChatMemberMember(response)
+    elif chatMember.status == 'restricted':
+        return ChatMemberRestricted(response)
+    elif chatMember.status == 'left':
+        return ChatMemberLeft(response)
+    elif chatMember.status == 'kicked':
+        return ChatMemberBanned(response)
+    return chatMember
+
+
+class ChatPhoto:
+
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.small_file_id = data.get('small_file_id')
+        self.small_file_unique_id = data.get('small_file_unique_id')
+        self.big_file_id = data.get('big_file_id')
+        self.big_file_unique_id = data.get('big_file_unique_id')
+
+
+class Location:
+
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.longitude = data.get('longitude')
+        self.latitude = data.get('latitude')
+        self.horizontal_accuracy = data.get('horizontal_accuracy') if 'horizontal_accuracy' in data else 0
+        self.live_period = data.get('live_period') if 'live_period' in data else 0
+        self.heading = data.get('heading') if 'heading' in data else 0
+        self.proximity_alert_radius = data.get('proximity_alert_radius') if 'proximity_alert_radius' in data else 0
+
+
+class ChatLocation:
+
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.location = Location(data.get("location"))
+        self.address = data.get("address")
+
+
+class File:
+
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self.__unpack(data)
+
+    def __unpack(self, data):
+        self.file_id = data.get('file_id')
+        self.file_unique_id = data.get('file_unique_id')
+        self.width = data.get('width') if 'widht' in data else None
+        self.height = data.get('height') if 'height' in data else None
+        self.file_size = data.get('file_size') if 'file_size' in data else None
+        self.file_path = data.get('file_path') if 'file_path' in data else None
+
+
+class PhotoSize(File):
+
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.file_size = data.get('file_size') if 'file_size' in data else None
+
+
+class Animation(File):
+
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.duration = data.get('duration')
+        self.thumbnail = PhotoSize(data.get('thumbnail')) if 'thumbnail' in data else None
+        self.file_name = data.get('file_name') if 'file_name' in data else None
+        self.mime_type = data.get('mime_type') if 'mime_type' in data else None
+        self.file_size = data.get('file_size') if 'file_size' in data else None
+
+
+class Audio(File):
+
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.duration = data.get('duration')
+        self.performer = data.get('performer') if 'performer' in data else None
+        self.title = data.get('title') if 'title' in data else None
+        self.file_name = data.get('file_name') if 'file_name' in data else None
+        self.mime_type = data.get('mime_type') if 'mime_type' in data else None
+        self.file_size = data.get('file_size') if 'file_size' in data else None
+        self.thumbnail = PhotoSize(data.get('thumbnail')) if 'thumbnail' in data else None
+
+
+class Document(File):
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.thumbnail = PhotoSize(data.get('thumbnail')) if 'thumbnail' in data else None
+        self.file_name = data.get('file_name') if 'file_name' in data else None
+        self.mime_type = data.get('mime_type') if 'mime_type' in data else None
+        self.file_size = data.get('file_size') if 'file_size' in data else None
+
+
+class MaskPosition:
+
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.point = data.get('point')
+        self.x_shift = data.get('x_shift')
+        self.y_shift = data.get('y_shift')
+        self.scale = data.get('scale')
+
+
+class Sticker(File):
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.type = data.get('type')
+        self.is_animated = data.get('is_animated')
+        self.is_video = data.get('is_video')
+        self.thumbnail = PhotoSize(data.get('thumbnail')) if 'thumbnail' in data else None
+        self.emoji = data.get('emoji') if 'emoji' in data else None
+        self.set_name = data.get('set_name') if 'set_name' in data else None
+        self.premium_animation = File(data.get('premium_animation')) if 'premium_animation' in data else None
+        self.mask_position = MaskPosition(data.get('mask_position')) if 'mask_position' in data else None
+        self.custom_emoji_id = data.get('custom_emoji_id') if 'custom_emoji_id' in data else None
+        self.needs_repainting = data.get('needs_repainting') if 'needs_repainting' in data else False
+        self.file_size = data.get('file_size') if 'file_size' in data else None
+
+
+class Video(File):
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.duration = data.get('duration')
+        self.thumbnail = PhotoSize(data.get('thumbnail')) if 'thumbnail' in data else None
+        self.file_name = data.get('file_name') if 'file_name' in data else None
+        self.mime_type = data.get('mime_type') if 'mime_type' in data else None
+        self.file_size = data.get('file_size') if 'file_size' in data else None
+
+
+class VideoNote(File):
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.length = data.get('length')
+        self.duration = data.get('duration')
+        self.thumbnail = PhotoSize(data.get('thumbnail')) if 'thumbnail' in data else None
+        self.file_size = data.get('file_size') if 'file_size' in data else None
+
+
+class Voice(File):
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.duration = data.get('duration')
+        self.mime_type = data.get('mime_type') if 'mime_type' in data else None
+        self.file_size = data.get('file_size') if 'file_size' in data else None
+
+
+class Contact:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.phone_number = data.get('phone_number')
+        self.first_name = data.get('first_name')
+        self.last_name = data.get('last_name') if 'last_name' in data else None
+        self.user_id = data.get('user_id') if 'user_id' in data else None
+        self.vcard = data.get('vcard	') if 'vcard' in data else None
+
+
+class Dice:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.emoji = data.get('emoji')
+        self.value = data.get('value')
+
+
+class MessageEntity:
+
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.type = data.get('type')
+        self.offset = data.get('offset')
+        self.length = data.get('length')
+        self.url = data.get('url') if 'url' in data else None
+        self.user = User(data.get('user')) if 'user' in data else None
+        self.language = data.get('language') if 'language' in data else None
+        self.custom_emoji_id = data.get('custom_emoji_id') if 'custom_emoji_id' in data else None
+
+    @classmethod
+    def create(cls, type, offset, lenght, url=None, user=None, language=None, custom_emoji_id=None):
+        data = get_params_from_func(locals(), "data")
+        return cls(data)
 
     @property
-    def to_dict(self):
-        return {
-            'label': self.label,
-            'amount': self.amount
-        }
+    def dict(self):
+        data = get_params_from_class(self.__dict__, "original_data")
+        return data
 
 
-class Command:
-    def __init__(self, func, name, description=None, aliases=None, usage=None, roles=None, ignore_filter=False,
-                 has_arts=False):
-        self.func = func
-        self.name = name
-        self.roles = roles
-        self.description = description
-        self.aliases = aliases
-        self.usage = usage
-        self.ignore_filter = ignore_filter
-        self.has_arts = has_arts
+class Game:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.title = data.get('title')
+        self.description = data.get('description')
+        self.photo = [PhotoSize(r) for r in data.get('photo')]
+        self.text = data.get('text') if 'text' in data else None
+        self.text_entities = [MessageEntity(r) for r in data.get('text_entities')] if 'text_entities' in data else None
+        self.animation = Animation(data.get('animation')) if 'animation' in data else None
 
 
-class CallbackQuery:
-    def __init__(self, bot, payload):
-        self.id = payload.get('id')
-        self.user = User(payload.get('from'))
-        self.message = Message(bot, payload.get('message'))
-        self.chat_instance = payload.get('chat_instance')
-        self.data = payload.get('data') if 'data' in payload else None
+class PollOption:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.text = data.get('text')
+        self.voter_count = data.get('voter_count')
 
 
-class KButton:
-    def __init__(self, text: str, callback_data=None, url=None):
-        self.text = text
-        self.url = url
-        self.callback_data = callback_data
+class Poll:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
 
-    def to_dict(self):
-        dic = {
-            'text': self.text
-        }
-        if self.url:
-            dic.update({'url': self.url})
-        if self.callback_data:
-            dic.update({'callback_data': self.callback_data})
-        return dic
-
-
-class Keyboard:
-    def __init__(self, resize=False, one_time=False, selective=False):
-        self.inline_keyboard_button = []
-        self.resize = resize
-        self.one_time = one_time
-        self.selective = selective
-
-    def add_button(self, button: KButton):
-        self.inline_keyboard_button.append(button)
-
-    def to_dict(self):
-        dic = []
-        for button in self.inline_keyboard_button:
-            dic.append(button.to_dict())
-
-        dic_ = [dic]
-        dic1 = {
-            'inline_keyboard': dic_,
-            'resize_keyboard': self.resize,
-            'one_time_keyboard': self.one_time,
-            'selective': self.selective
-        }
-        return dic1
+    def _unpack(self, data):
+        self.id = data.get('id')
+        self.question = data.get('question')
+        self.options = [PollOption(r) for r in data.get('options')]
+        self.total_voter_count = data.get('total_voter_count')
+        self.is_closed = data.get('is_closed')
+        self.is_anonymous = data.get('is_anonymous')
+        self.type = data.get('type')
+        self.allows_multiple_answers = data.get('allows_multiple_answers')
+        self.correct_option_id = data.get('correct_option_id') if 'correct_option_id' in data else None
+        self.explanation = data.get('explanation') if 'explanation' in data else None
+        self.explanation_entities = [MessageEntity(r) for r in
+                                     data.get('explanation_entities')] if 'explanation_entities' in data else None
+        self.open_period = data.get('open_period') if 'open_period' in data else None
+        self.close_date = data.get('close_date') if 'close_date' in data else None
 
 
-class ChatPermission:
-    def __init__(self, can_send_messages=True, can_send_media_messages=True, can_send_polls=True,
-                 can_send_other_messages=True, can_add_web_page_previews=True, can_change_info=False,
-                 can_invite_users=False, can_pin_messages=False, can_manage_topics=False):
-        self.can_send_messages = can_send_messages
-        self.can_send_media_messages = can_send_media_messages
-        self.can_send_polls = can_send_polls
-        self.can_send_other_messages = can_send_other_messages
-        self.can_add_web_page_previews = can_add_web_page_previews
-        self.can_change_info = can_change_info
-        self.can_invite_users = can_invite_users
-        self.can_pin_messages = can_pin_messages
-        self.can_manage_topics = can_manage_topics
+class Venue:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
 
-    @property
-    def to_dict(self):
-        return {
-            'can_send_messages': self.can_send_messages,
-            'can_send_media_messages': self.can_send_media_messages,
-            'can_send_polls': self.can_send_polls,
-            'can_send_other_messages': self.can_send_other_messages,
-            'can_add_web_page_previews': self.can_add_web_page_previews,
-            'can_change_info': self.can_change_info,
-            'can_invite_users': self.can_invite_users,
-            'can_pin_messages': self.can_pin_messages,
-            'can_manage_topics': self.can_manage_topics
-        }
+    def _unpack(self, data):
+        self.location = Location(data.get('location'))
+        self.title = data.get('title')
+        self.address = data.get('address')
+        self.foursquare_id = data.get('foursquare_id') if 'foursquare_id' in data else None
+        self.foursquare_type = data.get('foursquare_type') if 'foursquare_type' in data else None
+        self.google_place_id = data.get('google_place_id') if 'google_place_id' in data else None
+        self.google_place_type = data.get('google_place_type') if 'google_place_type' in data else None
 
 
-class PromotePermission:
-    def __init__(self, is_anonymous=False, can_manage_chat=False, can_post_messages=False, can_edit_messages=False,
-                 can_delete_messages=False, can_manage_video_chats=False, can_restrict_members=False,
-                 can_promote_members=False,
-                 can_change_info=False, can_invite_users=False, can_pin_messages=False, can_manage_topics=False):
-        self.is_anonymous = is_anonymous
-        self.can_manage_chat = can_manage_chat
-        self.can_post_messages = can_post_messages
-        self.can_edit_messages = can_edit_messages
-        self.can_delete_messages = can_delete_messages
-        self.can_manage_video_chats = can_manage_video_chats
-        self.can_restrict_members = can_restrict_members
-        self.can_promote_members = can_promote_members
-        self.can_change_info = can_change_info
-        self.can_invite_users = can_invite_users
-        self.can_pin_messages = can_pin_messages
-        self.can_manage_topics = can_manage_topics
+class MessageAutoDeleteTimerChanged:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
 
-    @property
-    def to_dict(self):
-        return {
-            'is_anonymous': self.is_anonymous,
-            'can_manage_chat': self.can_manage_chat,
-            'can_post_messages': self.can_post_messages,
-            'can_edit_messages': self.can_edit_messages,
-            'can_delete_messages': self.can_delete_messages,
-            'can_manage_video_chats': self.can_manage_video_chats,
-            'can_restrict_members': self.can_restrict_members,
-            'can_promote_members': self.can_promote_members,
-            'can_change_info': self.can_change_info,
-            'can_invite_users': self.can_invite_users,
-            'can_pin_messages': self.can_pin_messages,
-            'can_manage_topics': self.can_manage_topics
-        }
+    def _unpack(self, data):
+        self.message_auto_delete_time = data.get('message_auto_delete_time')
+
+
+class Invoice:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.title = data.get('title')
+        self.description = data.get('description')
+        self.start_parameter = data.get('start_parameter')
+        self.currency = data.get('currency')
+        self.total_amount = data.get('total_amount')
+
+
+class ShippingAddress:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.country_code = data.get('country_code')
+        self.state = data.get('state')
+        self.city = data.get('city')
+        self.street_line1 = data.get('street_line1')
+        self.street_line2 = data.get('street_line2')
+        self.post_code = data.get('post_code')
+
+
+class OrderInfo:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.name = data.get('name') if 'name' in data else None
+        self.phone_number = data.get('phone_number') if 'phone_number' in data else None
+        self.email = data.get('email') if 'email' in data else None
+        self.shipping_address = ShippingAddress(data.get('shipping_address')) if 'shipping_address' in data else None
 
 
 class SuccessfulPayment:
-    def __init__(self, payload):
-        self.currency = payload.get('currency')
-        self.total_amount = payload.get('total_amount')
-        self.invoice_payload = payload.get('invoice_payload')
-        self.telegram_payment_charge_id = payload.get('telegram_payment_charge_id')
-        self.provider_payment_charge_id = payload.get('provider_payment_charge_id')
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.currency = data.get('currency')
+        self.total_amount = data.get('total_amount')
+        self.invoice_payload = data.get('invoice_payload')
+        self.shipping_option_id = data.get('shipping_option_id') if 'shipping_option_id' in data else None
+        self.order_info = OrderInfo(data.get('order_info')) if 'order_info' in data else None
+        self.telegram_payment_charge_id = data.get('telegram_payment_charge_id')
+        self.provider_payment_charge_id = data.get('provider_payment_charge_id')
 
 
-class Message:
-    def __init__(self, bot: 'Bot', payload):
-        self.message_id = payload.get('message_id')
-        self.user = User(payload.get('from'))
-        self.chat = Chat(payload.get('chat'))
-        self.reply_to_message = Message(bot, payload.get('reply_to_message')) if payload.get(
-            'reply_to_message') else None
-        self.is_self = payload.get('is_self') if 'is_self' in payload else False
-        self.photo = Photo(payload.get('photo')[len(payload.get('photo')) - 1]) if 'photo' in payload else None
-        self.sticker = Sticker(payload.get('sticker')) if 'sticker' in payload else None
-        self.bot = bot
-        self.date = datetime.datetime.fromtimestamp(payload.get('date'))
-        self.text = payload.get('text') or payload.get('caption')
-        self.edit_date = datetime.datetime.fromtimestamp(payload.get('edit_date')) if 'edit_date' in payload else None
-        self.new_chat_member = User(payload.get('new_chat_member')) if 'new_chat_member' in payload else None
-        self.new_chat_participant = User(
-            payload.get('new_chat_participant')) if 'new_chat_participant' in payload else None
-        self.left_chat_participant = User(
-            payload.get('left_chat_participant')) if 'left_chat_participant' in payload else None
-        self.left_chat_member = User(payload.get('left_chat_member')) if 'left_chat_member' in payload else None
-        self.media_group_id = payload.get('media_group_id') if 'media_group_id' in payload else -1
-        self.successful_payment = SuccessfulPayment(
-            payload.get('successful_payment')) if 'successful_payment' in payload else None
-        self.forward_from = User(payload.get('forward_from')) if 'forward_from' in payload else None
-        self.forward_date = payload.get('forward_date') if 'forward_date' in payload else None
-        try:
-            if 'entities' in payload:
-                self.entities = [Entity(p) for p in payload.get('entities')]
-            else:
-                self.entities = []
-        except Exception:
-            self.entities = []
+class UserShared:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
 
-    async def get_photos(self):
-        if not self.photo:
-            return None
-        rs = (await self.bot.get_file(self.photo.file_id)).get('result')
-        return rs.get('file_id')
+    def _unpack(self, data):
+        self.request_id = data.get('request_id')
+        self.user_id = data.get('user_id')
 
 
+class ChatShared:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
 
-    def get_event_user(self):
-        if self.new_chat_member or self.new_chat_participant:
-            return self.new_chat_member or self.new_chat_participant
-        elif self.left_chat_participant or self.left_chat_member:
-            return self.left_chat_participant or self.left_chat_member
-        else:
-            return self.user
+    def _unpack(self, data):
+        self.request_id = data.get('request_id')
+        self.chat_id = data.get('chat_id')
 
-    async def delete_message(self):
-        """
-        Delete this message in chat
 
-        Parameters
-        -----------
-        None
-        """
-        return await self.bot.delete_message(self.chat.id, self.message_id)
+class WriteAccessAllowed:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
 
-    def get_text(self) -> str:
-        return self.text
+    def _unpack(self, data):
+        self.web_app_name = data.get('web_app_name') if 'web_app_name' in data else None
 
-    async def send_photo(self, photo_id: str, **kwargs):
-        return await self.bot.send_photo(self.chat.id, photo_id, **kwargs)
 
-    async def send(self, text: str, reply_markup=None, **kwargs):
-        return await self.bot.send_message(self.chat.id, text, reply_markup, **kwargs)
+class PasportFile(File):
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
 
-    async def send_dice(self, emoji, **kwargs):
-        return await self.bot.send_dice(self.chat.id, emoji, **kwargs)
+    def _unpack(self, data):
+        self.file_size = data.get('file_size')
+        self.file_date = datetime.fromtimestamp(data.get('file_date'))
 
-    async def restrict_sender(self, permission: ChatPermission, until_date: int):
-        return await self.bot.restrict_chat_member(self.chat.id, self.user.id, permission, until_date)
 
-    async def promote_sender(self, promotePermission: PromotePermission):
-        return await self.bot.promote_chat_member(self.chat.id, self.user.id, promotePermission)
+class EncryptedPassportElement:
+    def __init__(self, data):
+        self._unpack(data)
 
-    async def set_admin_title(self, custom_title: str):
-        return await self.bot.set_chat_administrator_custom_title(self.chat.id, self.user.id, custom_title)
+    def _unpack(self, data):
+        self.type = data.get('type')
+        self.data = data.get('data') if 'data' in data else None
+        self.phone_number = data.get('phone_number') if 'phone_number' in data else None
+        self.email = data.get('email') if 'email' in data else None
+        self.files = [PasportFile(r) for r in data.get('files')] if 'files' in data else None
+        self.front_side = PasportFile(data.get('front_side')) if 'front_side' in data else None
+        self.reverse_side = PasportFile(data.get('reverse_side')) if 'reverse_side' in data else None
+        self.selfie = PasportFile(data.get('selfie')) if 'selfie' in data else None
+        self.translation = [PasportFile(r) for r in data.get('translation')] if 'translation' in data else None
+        self.hash = data.get('hash') if 'hash' in data else None
 
-    async def get_appeal(self, offset=1):
-        count = 1
-        for s in self.text.split(' '):
-            if s.startswith('@'):
-                if count == offset:
-                    return await User.load(s.replace("@", ""), self.bot)
 
-                else:
-                    count += 1
+class EncryptedCredentials:
+    def __init__(self, data):
+        self._unpack(data)
 
-    async def edit(self, text: str, **kwargs):
-        if self.user.is_bot:
-            data = {
-                'chat_id': self.chat.id,
-                'message_id': self.message_id,
-                'text': text
-            }
-            data.update(kwargs)
-            rs = await self.bot.tg_request('editMessageText', True, **data)
-            return Message(self.bot, rs.get('result'))
+    def _unpack(self, data):
+        self.data = data.get('data')
+        self.hash = data.get('hash')
+        self.secret = data.get('secret')
 
-    async def reply(self, text, reply_markup=None, photo=None, parse_mode=None, **kwargs):
+
+class PassportData:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.data = [EncryptedPassportElement(r) for r in data.get('data')]
+        self.credentials = EncryptedCredentials(data.get('credentials'))
+
+
+class ProximityAlertTriggered:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.traveler = User(data.get('traveler'))
+        self.watcher = User(data.get('watcher'))
+        self.distance = data.get('distance')
+
+
+class ForumTopicCreated:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.name = data.get('name')
+        self.icon_color = data.get('icon_color')
+        self.icon_custom_emoji_id = data.get('icon_custom_emoji_id') if 'icon_custom_emoji_id' in data else None
+
+
+class ForumTopicEdited:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.name = data.get('name') if 'name' in data else None
+        self.icon_custom_emoji_id = data.get('icon_custom_emoji_id') if 'icon_custom_emoji_id' in data else None
+
+
+class ForumTopicClosed:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+
+
+class ForumTopicReopened:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+
+
+class GeneralForumTopicHidden:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+
+
+class GeneralForumTopicUnhidden:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+
+
+class VideoChatScheduled:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.start_date = data.get('start_date') if 'start_date' in data else None
+
+
+class VideoChatEnded:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+
+
+class VideoChatStarted:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.duration = data.get('duration') if 'duration' in data else None
+
+
+class VideoChatParticipantsInvited:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.users = [User(r) for r in data.get('users')] if 'users' in data else None
+
+
+class WebAppData:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.data = data.get('data') if 'data' in data else None
+        self.button_text = data.get('button_text') if 'button_text' in data else None
+
+
+class WebAppInfo:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.url = data.get('url')
+
+    @property
+    def dict(self):
+        return {'url':self.url}
+
+
+class LoginUrl:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.url = data.get('url')
+        self.forward_text = data.get('forward_text') if 'forward_text' in data else None
+        self.bot_username = data.get('bot_username') if 'bot_username' in data else None
+        self.request_write_access = data.get('request_write_access') if 'request_write_access' in data else False
+
+
+class SwitchInlineQueryChosenChat:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.query = data.get('query') if 'query' in data else None
+        self.allow_user_chats = data.get('allow_user_chats') if 'allow_user_chats' in data else None
+        self.allow_bot_chats = data.get('allow_bot_chats') if 'allow_bot_chats' in data else None
+        self.allow_group_chats = data.get('allow_group_chats') if 'allow_group_chats' in data else None
+        self.allow_channel_chats = data.get('allow_channel_chats') if 'allow_channel_chats' in data else None
+
+
+class CallbackGame:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+
+
+class InlineKeyboardButton:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.text = data.get('text')
+        self.url = data.get('url') if 'url' in data else None
+        self.callback_data = data.get('callback_data') if 'callback_data' in data else None
+        self.web_app = WebAppInfo(data.get('web_app')) if 'web_app' in data else None
+        self.login_url = LoginUrl(data.get('login_url')) if 'login_url' in data else None
+        self.switch_inline_query = data.get('switch_inline_query') if 'switch_inline_query' in data else None
+        self.switch_inline_query_current_chat = data.get(
+            'switch_inline_query_current_chat') if 'switch_inline_query_current_chat' in data else None
+        self.switch_inline_query_chosen_chat = SwitchInlineQueryChosenChat(
+            data.get('switch_inline_query_chosen_chat')) if 'switch_inline_query_chosen_chat' in data else None
+        self.callback_game = CallbackGame(data.get('callback_game')) if 'callback_game' in data else None
+        self.pay = data.get('pay') if 'pay' in data else None
+
+    @classmethod
+    def create(cls, text, url=None, callback_data=None, web_app=None,
+               login_url=None, switch_inline_query=None, switch_inline_query_current_chat=None,
+               switch_inline_query_chosen_chat=None, callback_game=None, pay=None):
+        d = {}
+        for a, b in locals().items():
+            if a == 'cls' or a == 'd':
+                continue
+            if b != None:
+                d.update({a: b})
+        return cls(d)
+
+    @property
+    def dict(self):
+        d_ = {}
+        for a, b in self.__dict__.items():
+            if a == 'original_data':
+                continue
+            if b is None:
+                continue
+            d_.update({a: b})
+        return d_
+
+
+class InlineKeyboardMarkup:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.inline_keyboard = [[InlineKeyboardButton(l) for l in r]  for r in data.get('inline_keyboard')]\
+            if 'inline_keyboard' in data else []
+
+    @classmethod
+    def create(cls):
+        return cls({})
+
+    def addButton(self, button: InlineKeyboardButton):
+        self.inline_keyboard.append(button)
+
+    @property
+    def dict(self):
         data = {
-            'chat_id': self.chat.id or kwargs['chat_id'],
-            'reply_to_message_id': self.message_id
+            'inline_keyboard': [[r.dict] for r in self.inline_keyboard]
         }
-        if parse_mode:
-            data['parse_mode'] = parse_mode
-        if reply_markup:
-            data['reply_markup'] = json.dumps(reply_markup.to_dict())
-        if photo:
-            data['caption'] = text
-            data.pop('chat_id')
-            return await self.send_photo(photo, **data)
-        text = str(text)
-        if text is not None:
-            if len(text) > 4096:
-                datas = []
-                for i in range(0,(len(text)//4094)+1):
-                    data['text'] = text[i*4096:(i+1)*4094]
-                    rs = await self.bot.tg_request('sendMessage', True, **data)
-                    datas.append(rs)
-                return datas
-        data['text'] = text
-        rs = await self.bot.tg_request('sendMessage', True, **data)
-        return rs.get('ok')
+        return data
+
+class KeyboardButtonRequestUser:
+    def __init__(self, request_id, user_is_bot=None,user_is_premium=None):
+        self.request_id = request_id
+        self.user_is_bot = user_is_bot
+        self.user_is_premium = user_is_premium
+
+    @property
+    def dict(self):
+        return self.__dict__
+
+class ChatAdministratorRights:
+    def __init__(self,is_anonymous=False,can_manage_chat=False,can_delete_messages=False,
+                 can_manage_video_chats=False,can_restrict_members=False,can_promote_members=False,
+                 can_change_info=False,can_invite_users=False,can_post_messages=False,
+                 can_edit_messages=False,can_pin_messages=False,can_manage_topics=False):
+        self.is_anonymous = is_anonymous
+        self.can_manage_chat = can_manage_chat
+        self.can_delete_messages = can_delete_messages
+        self.can_manage_video_chats = can_manage_video_chats
+        self.can_restrict_members =can_restrict_members
+        self.can_promote_members = can_promote_members
+        self.can_change_info = can_change_info
+        self.can_invite_users = can_invite_users
+        self.can_post_messages = can_post_messages
+        self.can_edit_messages = can_edit_messages
+        self.can_pin_messages = can_pin_messages
+        self.can_manage_topics = can_manage_topics
+
+    @property
+    def dict(self):
+        return self.__dict__
+
+class KeyboardButtonRequestChat:
+    def __init__(self, request_id, chat_is_channel,chat_is_forum=None,chat_has_username=None,chat_is_created=None,
+                 user_administrator_rights:ChatAdministratorRights=None,bot_administrator_rights:ChatAdministratorRights=None,
+                 bot_is_member=None):
+        self.request_id = request_id
+        self.user_is_bot = chat_is_channel
+        self.chat_is_forum = chat_is_forum
+        self.chat_has_username = chat_has_username
+        self.chat_is_created = chat_is_created
+        self.user_administrator_rights = user_administrator_rights.dict if user_administrator_rights else None
+        self.bot_administrator_rights = bot_administrator_rights.dict if bot_administrator_rights else None
+        self.bot_is_member = bot_is_member
+
+    @property
+    def dict(self):
+        return self.__dict__
+
+class KeyboardButtonPollType:
+    def __init__(self,type=None):
+        self.type = type
+
+    @property
+    def dict(self):
+        return self.__dict__
+
+class KeyboardButton:
+    def __init__(self,text,request_user:KeyboardButtonRequestUser=None,request_chat:KeyboardButtonRequestChat=None,
+                 request_contact=None,request_location=None,request_poll:KeyboardButtonPollType=None,web_app:WebAppInfo=None):
+        self.text = text
+        self.request_user = request_user.dict if request_user else None
+        self.request_chat =request_chat.dict if request_chat else None
+        self.request_contact = request_contact
+        self.request_location =request_location
+        self.request_poll = request_poll.dict if request_poll else None
+        self.web_app = web_app.dict if web_app else None
+
+    @property
+    def dict(self):
+        return self.__dict__
 
 
-class PreCheckOutQuery:
-    def __init__(self, payload):
-        self.id = payload.get('id')
-        self.user = User(payload.get('from'))
-        self.currency = payload.get('currency')
-        self.total_amount = payload.get('total_amount')
-        self.invoice_payload = payload.get('invoice_payload')
+class ReplyKeyboardMarkup:
+    def __init__(self, keyboard, is_persistent=None,resize_keyboard=None,one_time_keyboard=None,
+                 input_field_placeholder=None,selective=None):
+        self.keyboard = [r.dict for r in keyboard]
+        self.is_persistent = is_persistent
+        self.resize_keyboard = resize_keyboard
+        self.one_time_keyboard = one_time_keyboard
+        self.input_field_placeholder = input_field_placeholder
+        self.selective =selective
+
+    @property
+    def dict(self):
+        return self.__dict__
+
+class ReplyKeyboardRemove:
+    def __init__(self,remove_keyboard,selective=None):
+        self.selective = selective
+        self.remove_keyboard = remove_keyboard
+
+    @property
+    def dict(self):
+        return self.__dict__
+
+class ChatMember:
+    def __init__(self, data):
+        self.original_data = deepcopy(data)
+        self.__unpack(data)
+
+    def __unpack(self, data):
+        self.status = data.get('status')
+        self.user = User(data.get('user'))
 
 
-class Sticker:
-    def __init__(self, payload):
-        self.width = payload.get('width')
-        self.height = payload.get('height')
-        self.emoji = payload.get('emoji')
-        self.set_name = payload.get('set_name')
-        self.is_animated = payload.get('is_animated')
-        self.is_video = payload.get('is_video')
-        self.type = payload.get('type')
-        self.thumb = Photo(payload.get('thumb'))
-        self.file_id = payload.get('file_id')
-        self.file_unique_id = payload.get('file_unique_id')
+class ChatMemberOwner(ChatMember):
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.is_anonymous = data.get('is_anonymous')
+        self.custom_title = data.get('custom_title') if 'custom_title' in data else None
 
 
-class Photo:
-    def __init__(self, payload):
-        self.file_id = payload.get('file_id')
-        self.file_unique_id = payload.get('file_unique_id')
-        self.file_size = payload.get('file_size')
-        self.width = payload.get('width')
-        self.height = payload.get('height')
+class ChatMemberAdministrator(ChatMember):
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.can_be_edited = data.get('can_be_edited')
+        self.is_anonymous = data.get('is_anonymous')
+        self.can_manage_chat = data.get('can_manage_chat')
+        self.can_delete_messages = data.get('can_delete_messages')
+        self.can_manage_video_chats = data.get('can_manage_video_chats')
+        self.can_restrict_members = data.get('can_restrict_members')
+        self.can_promote_members = data.get('can_promote_members')
+        self.can_change_info = data.get('can_change_info')
+        self.can_invite_users = data.get('can_invite_users')
+        self.can_post_messages = data.get('can_post_messages')
+        self.can_edit_messages = data.get('can_edit_messages')
+        self.can_pin_messages = data.get('can_pin_messages')
+        self.can_manage_topics = data.get('can_manage_topics')
+        self.custom_title = data.get('custom_title') if 'custom_title' in data else None
 
 
-class User:
-    def __init__(self, payload):
-        self.id = payload.get('id')
-        self.is_bot = payload.get('is_bot')
-        self.first_name = payload.get('first_name')
-        self.last_name = payload.get('last_name')
-        self.username = payload.get('username')
-        self.language_code = payload.get('language_code')
-
-    @staticmethod
-    async def load(username, bot):
-        if username in username_cahce:
-            return user_cache.get(username_cahce.get(username))
-        else:
-            rs = await bot.pyrogram.get_users(username)
-            user = await User.parse_user(rs)
-            user_cache.update({user.id: user})
-            username_cahce.update({username: user.id})
-            return user
-
-    @staticmethod
-    async def parse_user(us):
-        user = User({})
-        user.id = us.id
-        user.is_self = us.is_self
-        user.is_bot = us.is_bot
-        user.first_name = us.first_name
-        user.last_name = us.last_name
-        user.username = us.username
-        return user
-
-    def get_full_name(self):
-        return self.first_name + ' ' + self.last_name
+class ChatMemberMember(ChatMember):
+    def __init__(self, data):
+        super().__init__(data)
 
 
-class Entity:
-    def __init__(self, payload):
-        self.user = User(payload.get('user'))
-        self.offset = payload.get('offset')
-        self.length = payload.get('length')
-        self.type = payload.get('type')
+class ChatMemberRestricted(ChatMember):
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.is_member = data.get('is_member')
+        self.can_send_messages = data.get('can_send_messages')
+        self.can_send_audios = data.get('can_send_audios')
+        self.can_send_documents = data.get('can_send_documents')
+        self.can_send_photos = data.get('can_send_photos')
+        self.can_send_videos = data.get('can_send_videos')
+        self.can_send_video_notes = data.get('can_send_video_notes')
+        self.can_send_voice_notes = data.get('can_send_voice_notes')
+        self.can_send_polls = data.get('can_send_polls')
+        self.can_send_other_messages = data.get('can_send_other_messages')
+        self.can_add_web_page_previews = data.get('can_add_web_page_previews')
+        self.can_change_info = data.get('can_change_info')
+        self.can_invite_users = data.get('can_invite_users')
+        self.can_pin_messages = data.get('can_pin_messages')
+        self.can_manage_topics = data.get('can_manage_topics')
+        self.until_date = data.get('until_date')
 
 
-class UserChat:
-    def __init__(self, payload):
-        self.first_name = payload.get('first_name')
-        self.last_name = payload.get('last_name')
-        self.username = payload.get('username')
+class ChatMemberLeft(ChatMember):
+    def __init__(self, data):
+        super().__init__(data)
 
 
-class GroupChat:
-    def __init__(self, payload):
-        self.title = payload.get('title')
-        self.all_members_are_administrators = payload.get('all_members_are_administrators')
+class ChatMemberBanned(ChatMember):
+    def __init__(self, data):
+        super().__init__(data)
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.until_date = data.get('until_date')
 
 
-class Chat:
-    def __init__(self, payload):
-        self.id = payload.get('id')
-        self.type = payload.get('type')
-        if type == 'private':
-            self.chatObj = UserChat(payload)
-        elif type == 'group':
-            self.chatObj = GroupChat(payload)
-        self.invite_link = payload.get('invite_link') if 'invite_link' in payload else None
-        self.permissions = ChatPermission(payload.get('permissions')) if 'permissions' in payload else None
-        self.join_to_send_messages = payload.get('join_to_send_messages') if 'join_to_send_messages' in payload else False
+class InlineQuery:
+    def __init__(self, data):
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.id = data.get('id')
+        self.from_ = User(data.get('from'))
+        self.query = data.get('query')
+        self.offset = data.get('offset')
+        self.chat_type = data.get('chat_type', None)
+        self.location = Location(data.get('location')) if data.get('location', None) is not None else None
 
 
-class ChatActions(Enum):
-    TYPING = "typing"
-    UPLOAD_PHOTO = 'upload_photo'
-    RECORD_VIDEO = 'record_video'
-    UPLOAD_VIDEO = 'upload_video'
-    RECORD_AUDIO = 'record_audio'
-    UPLOAD_AUDIO = 'upload_audio'
-    UPLOAD_DOCUMENT = 'upload_document'
-    FIND_LOCATION = 'find_location'
+class ChosenInlineResult:
+    def __init__(self, data):
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.result_id = data.get('result_id')
+        self.from_ = User(data.get('from'))
+        self.location = Location(data.get('location')) if data.get('location', None) is not None else None
+        self.inline_message_id = data.get('inline_message_id', None)
+        self.query = data.get('query', None)
 
 
-class UserProfilePicture:
-    def __init__(self, payload):
-        self.count = payload.get('total_count')
-        self.photos = [Photo(photo) for photo in payload.get('photos')[0]]
+class ShippingQuery:
+    def __init__(self, data):
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.id = data.get('id', None)
+        self.invoice_payload = data.get('invoice_payload', None)
+        self.shipping_address = ShippingAddress(data.get('shipping_address', None))
+        self.from_ = User(data.get('from'))
+
+
+class PreCheckoutQuery:
+    def __init__(self, data):
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.id = data.get('id', None)
+        self.from_ = User(data.get('from'))
+        self.currency = data.get('currency', None)
+        self.total_amount = data.get('total_amount', None)
+        self.invoice_payload = data.get('invoice_payload', None)
+        self.shipping_option_id = data.get('shipping_option_id', None)
+        self.order_info = OrderInfo(data.get('order_info', None)) if data.get('order_info', None) is not None else None
+
+
+class PollAnswer:
+    def __init__(self, data):
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.poll_id = data.get('poll_id', None)
+        self.user = User(data.get('user', None))
+        self.option_ids = [r for r in data.get('option_ids')] if data.get('option_ids', None) is not None else []
+
+
+class ChatInviteLink:
+    def __init__(self, data):
+        self._unpack(data)
+
+    def _unpack(self, data):
+        self.invite_link = data.get('invite_link', None)
+        self.creator = User(data.get('creator', None))
+        self.creates_join_request = data.get('creates_join_request', None)
+        self.is_primary = data.get('is_primary', None)
+        self.is_revoked = data.get('is_revoked', None)
+        self.name = data.get('name', None)
+        self.expire_date = data.get('expire_date', None)
+        self.member_limit = data.get('member_limit', None)
+        self.pending_join_request_count = data.get('pending_join_request_count', None)

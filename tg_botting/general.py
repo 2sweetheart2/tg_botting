@@ -1,11 +1,5 @@
 import aiohttp
 
-token = ''
-
-
-class RoleException(BaseException):
-    pass
-
 
 def convert_params(params):
     for param in list(params):
@@ -26,6 +20,5 @@ async def general_request(url, post=False, **params):
         return await res.json()
 
 
-async def tg_request(method, post=False, **kwargs):
-    return await general_request('https://api.telegram.org/bot{}/{}'.format(token, method), post=post,
-                                 **kwargs)
+async def tg_request(method, token, post=False, **kwargs):
+    return await general_request('https://api.telegram.org/bot{}/{}'.format(token,method), post=post, **kwargs)
